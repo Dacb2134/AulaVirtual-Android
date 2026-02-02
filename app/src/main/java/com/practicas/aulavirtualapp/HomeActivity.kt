@@ -1,47 +1,67 @@
 package com.practicas.aulavirtualapp
 
 import android.os.Bundle
+import android.view.View
+import android.widget.ProgressBar
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.practicas.aulavirtualapp.viewmodel.HomeViewModel
 
 class HomeActivity : AppCompatActivity() {
 
     private lateinit var viewModel: HomeViewModel
+    private lateinit var adapter: CourseAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_home)
 
-        val tvInfo = findViewById<TextView>(R.id.tvTokenInfo)
-        val tvWelcome = findViewById<TextView>(R.id.tvWelcome)
+        // Vistas nuevas
+        val rvCourses = findViewById<RecyclerView>(R.id.rvCourses)
+        val pbLoading = findViewById<ProgressBar>(R.id.pbLoading)
+        val tvGreeting = findViewById<TextView>(R.id.tvGreeting) // Nuevo ID
 
-        // Conectar con el ViewModel
+        rvCourses.layoutManager = LinearLayoutManager(this)
+        // Inicializamos el adaptador con la ACCIÓN DE CLIC
+        adapter = CourseAdapter(emptyList()) { course, color ->
+            // Esto se ejecuta cuando el usuario toca una tarjeta
+            val intent = android.content.Intent(this, CourseDetailActivity::class.java)
+            intent.putExtra("COURSE_ID", course.id)
+            intent.putExtra("COURSE_NAME", course.fullName)
+            intent.putExtra("COURSE_COLOR", color) // Pasamos el color para que combine
+            startActivity(intent)
+        }
+        rvCourses.adapter = adapter
+
         viewModel = ViewModelProvider(this)[HomeViewModel::class.java]
 
-        // Recibir el token
         val token = intent.getStringExtra("USER_TOKEN")
-
         if (token != null) {
-
+            pbLoading.visibility = View.VISIBLE
             viewModel.cargarDatosUsuario(token)
         }
 
-        // Observar mensajes de estado
+        // Observamos el mensaje para actualizar el saludo
         viewModel.mensaje.observe(this) { texto ->
-            tvInfo.text = texto
+            if (texto.contains("Hola")) {
+                tvGreeting.text = texto.split(".")[0] + " 👋"
+            } else if (texto.contains("Error") || texto.contains("Fallo")) {
+                pbLoading.visibility = View.GONE
+                Toast.makeText(this, texto, Toast.LENGTH_LONG).show()
+            }
         }
 
-        // Observar la lista de cursos
         viewModel.cursos.observe(this) { listaCursos ->
-            // Cuando lleguen los cursos, los mostramos en pantalla
-            var resultado = "TUS CURSOS ENCONTRADOS:\n\n"
-            for (curso in listaCursos) {
-                resultado += "📚 ${curso.fullName}\n\n"
+            pbLoading.visibility = View.GONE
+            if (listaCursos.isNotEmpty()) {
+                adapter.updateData(listaCursos)
+            } else {
+                tvGreeting.text = "Sin cursos asignados"
             }
-            tvInfo.text = resultado
-            tvWelcome.text = "¡Carga Completa!"
         }
     }
 }
