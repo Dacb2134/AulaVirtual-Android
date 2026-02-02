@@ -1,5 +1,6 @@
 package com.practicas.aulavirtualapp
 
+import android.content.Intent // 👈 ESTA ERA LA LÍNEA QUE FALTABA
 import android.os.Bundle
 import android.widget.Button
 import android.widget.EditText
@@ -17,7 +18,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-
+        //Conectamos con el ViewModel
         viewModel = ViewModelProvider(this)[LoginViewModel::class.java]
 
         val etUser = findViewById<EditText>(R.id.etUsername)
@@ -25,11 +26,12 @@ class MainActivity : AppCompatActivity() {
         val btnLogin = findViewById<Button>(R.id.btnLogin)
         val tvStatus = findViewById<TextView>(R.id.tvStatus)
 
+        // OBSERVAMOS los cambios
 
         viewModel.cargando.observe(this) { estaCargando ->
             if (estaCargando) {
                 tvStatus.text = "Conectando con Moodle..."
-                btnLogin.isEnabled = false // Desactivar botón para que no den doble clic
+                btnLogin.isEnabled = false
             } else {
                 btnLogin.isEnabled = true
             }
@@ -38,9 +40,14 @@ class MainActivity : AppCompatActivity() {
 
         viewModel.resultadoLogin.observe(this) { response ->
             if (response != null) {
-                tvStatus.text = "¡Login Correcto!\nToken: ${response.token}"
-                Toast.makeText(this, "Bienvenido", Toast.LENGTH_LONG).show()
-                // Aquí en el futuro abriremos la siguiente pantalla
+                tvStatus.text = "¡Login Correcto!"
+                Toast.makeText(this, "Bienvenido", Toast.LENGTH_SHORT).show()
+
+
+                val intent = Intent(this, HomeActivity::class.java)
+                intent.putExtra("USER_TOKEN", response.token) // Le pasamos la llave
+                startActivity(intent)
+                finish()
             }
         }
 
@@ -50,7 +57,7 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, mensajeError, Toast.LENGTH_SHORT).show()
         }
 
-
+        //  El botón solo le da la orden al ViewModel
         btnLogin.setOnClickListener {
             val user = etUser.text.toString().trim()
             val pass = etPass.text.toString().trim()
