@@ -4,12 +4,14 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FAFAFA"> <View
-    android:id="@+id/viewHeaderBg"
-    android:layout_width="match_parent"
-    android:layout_height="240dp"
-    android:background="@drawable/bg_header_gradient"
-    app:layout_constraintTop_toTopOf="parent" />
+    android:background="#FAFAFA">
+
+    <View
+        android:id="@+id/viewHeaderBg"
+        android:layout_width="match_parent"
+        android:layout_height="240dp"
+        android:background="@drawable/bg_header_gradient"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
         android:id="@+id/tvGreeting"
@@ -35,6 +37,20 @@
         app:layout_constraintStart_toStartOf="@id/tvGreeting"
         app:layout_constraintTop_toBottomOf="@id/tvGreeting" />
 
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottomNavigation"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#FFFFFF"
+        app:menu="@menu/menu_bottom_nav"
+        app:labelVisibilityMode="labeled"
+        app:itemIconTint="#6200EE"
+        app:itemTextColor="#6200EE"
+        app:elevation="16dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvCourses"
         android:layout_width="match_parent"
@@ -42,7 +58,7 @@
         android:layout_marginTop="24dp"
         android:clipToPadding="false"
         android:paddingTop="10dp"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/bottomNavigation"
         app:layout_constraintTop_toBottomOf="@id/tvSubtitleHeader" />
 
     <ProgressBar
