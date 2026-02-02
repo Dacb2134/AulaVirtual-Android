@@ -1,5 +1,6 @@
 package com.practicas.aulavirtualapp.repository
 
+import com.practicas.aulavirtualapp.model.AssignmentResponse
 import com.practicas.aulavirtualapp.model.Course
 import com.practicas.aulavirtualapp.model.SiteInfo
 import com.practicas.aulavirtualapp.network.RetrofitClient
@@ -21,5 +22,9 @@ class AuthRepository {
     // Pedir los Cursos
     fun getUserCourses(token: String, userId: Int): Call<List<Course>> {
         return RetrofitClient.instance.getUserCourses(token, userId)
+    }
+
+    fun getAssignments(token: String, courseId: Int): Call<AssignmentResponse> {
+        return RetrofitClient.instance.getCourseAssignments(token, courseId)
     }
 }

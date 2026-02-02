@@ -23,22 +23,31 @@ class HomeActivity : AppCompatActivity() {
         // Vistas nuevas
         val rvCourses = findViewById<RecyclerView>(R.id.rvCourses)
         val pbLoading = findViewById<ProgressBar>(R.id.pbLoading)
-        val tvGreeting = findViewById<TextView>(R.id.tvGreeting) // Nuevo ID
+        val tvGreeting = findViewById<TextView>(R.id.tvGreeting)
 
         rvCourses.layoutManager = LinearLayoutManager(this)
+
         // Inicializamos el adaptador con la ACCIÓN DE CLIC
         adapter = CourseAdapter(emptyList()) { course, color ->
-            // Esto se ejecuta cuando el usuario toca una tarjeta
-            val intent = android.content.Intent(this, CourseDetailActivity::class.java)
-            intent.putExtra("COURSE_ID", course.id)
-            intent.putExtra("COURSE_NAME", course.fullName)
-            intent.putExtra("COURSE_COLOR", color) // Pasamos el color para que combine
-            startActivity(intent)
+            val nextIntent = android.content.Intent(this, CourseDetailActivity::class.java)
+
+            // Pasamos datos básicos
+            nextIntent.putExtra("COURSE_ID", course.id)
+            nextIntent.putExtra("COURSE_NAME", course.fullName)
+            nextIntent.putExtra("COURSE_COLOR", color)
+
+            // 👇 LA CORRECCIÓN CLAVE:
+            // Usamos 'this@HomeActivity.intent' para asegurarnos de leer el token que llegó a ESTA pantalla
+            val myToken = this@HomeActivity.intent.getStringExtra("USER_TOKEN")
+            nextIntent.putExtra("USER_TOKEN", myToken)
+
+            startActivity(nextIntent)
         }
         rvCourses.adapter = adapter
 
         viewModel = ViewModelProvider(this)[HomeViewModel::class.java]
 
+        // Leemos el token para cargar los cursos (esto estaba bien)
         val token = intent.getStringExtra("USER_TOKEN")
         if (token != null) {
             pbLoading.visibility = View.VISIBLE

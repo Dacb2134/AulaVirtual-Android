@@ -1,5 +1,6 @@
 package com.practicas.aulavirtualapp.network
 
+import com.practicas.aulavirtualapp.model.AssignmentResponse
 import com.practicas.aulavirtualapp.model.Course
 import com.practicas.aulavirtualapp.model.SiteInfo
 import retrofit2.Call
@@ -17,7 +18,6 @@ interface MoodleApiService {
     ): Call<TokenResponse>
 
     // Obtener información de mi usuario (ID, Nombre, Foto)
-
     @GET("webservice/rest/server.php")
     fun getSiteInfo(
         @Query("wstoken") token: String,
@@ -33,4 +33,15 @@ interface MoodleApiService {
         @Query("wsfunction") function: String = "core_enrol_get_users_courses",
         @Query("moodlewsrestformat") format: String = "json"
     ): Call<List<Course>>
+
+    // Obtener TAREAS de un curso específico
+
+    @GET("webservice/rest/server.php")
+    fun getCourseAssignments(
+        @Query("wstoken") token: String,
+        @Query("courseids[0]") courseId: Int,
+        // 👇 Aquí es donde le decimos a Moodle qué función queremos usar
+        @Query("wsfunction") function: String = "mod_assign_get_assignments",
+        @Query("moodlewsrestformat") format: String = "json"
+    ): Call<AssignmentResponse>
 }
