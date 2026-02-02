@@ -1,5 +1,6 @@
-package com.practicas.aulavirtualapp
+package com.practicas.aulavirtualapp.adapter
 
+import android.content.res.ColorStateList
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -9,8 +10,9 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.cardview.widget.CardView
 import androidx.recyclerview.widget.RecyclerView
+import com.practicas.aulavirtualapp.ColorGenerator
+import com.practicas.aulavirtualapp.R
 import com.practicas.aulavirtualapp.model.Course
-
 
 // 👇 CAMBIO 1: Añadimos 'onCourseClick' al constructor
 class CourseAdapter(
@@ -45,7 +47,7 @@ class CourseAdapter(
 
         holder.cvIcon.setCardBackgroundColor(bgColor)
         holder.ivIcon.setColorFilter(iconColor)
-        holder.progressBar.progressTintList = android.content.res.ColorStateList.valueOf(iconColor)
+        holder.progressBar.progressTintList = ColorStateList.valueOf(iconColor)
         holder.tvPercent.setTextColor(iconColor)
 
         // 👇 CAMBIO 2: Detectar el Clic

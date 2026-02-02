@@ -1,4 +1,4 @@
-package com.practicas.aulavirtualapp
+package com.practicas.aulavirtualapp.ui
 
 import android.os.Bundle
 import android.view.View
@@ -9,6 +9,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.practicas.aulavirtualapp.R
+import com.practicas.aulavirtualapp.adapter.AssignmentAdapter
 import com.practicas.aulavirtualapp.viewmodel.CourseDetailViewModel
 
 class CourseDetailActivity : AppCompatActivity() {
