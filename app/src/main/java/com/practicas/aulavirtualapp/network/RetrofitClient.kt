@@ -5,7 +5,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 object RetrofitClient {
 
-    // Asegúrate de que esta sea TU IP
+
     private const val BASE_URL = "http://192.168.1.144/"
 
     val instance: MoodleApiService by lazy {
