@@ -1,45 +1,110 @@
 package com.practicas.aulavirtualapp.adapter
 
+import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.practicas.aulavirtualapp.R
 import com.practicas.aulavirtualapp.model.Assignment
 import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import java.util.*
 
-class AssignmentAdapter(private var assignments: List<Assignment> = emptyList()) :
-    RecyclerView.Adapter<AssignmentAdapter.ViewHolder>() {
+class AssignmentAdapter(
+    private var assignments: List<Assignment> = emptyList()
+) : RecyclerView.Adapter<AssignmentAdapter.AssignmentViewHolder>() {
 
-    class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val tvTitle: TextView = view.findViewById(R.id.tvTitle)
-        val tvDate: TextView = view.findViewById(R.id.tvDate)
+    private val headerFormat = SimpleDateFormat("EEEE, d 'de' MMMM", Locale("es", "ES"))
+    private val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+
+    fun updateData(newAssignments: List<Assignment>) {
+        this.assignments = newAssignments
+        notifyDataSetChanged()
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): AssignmentViewHolder {
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_assignment, parent, false)
-        return ViewHolder(view)
+        return AssignmentViewHolder(view)
     }
 
-    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        val item = assignments[position]
-        holder.tvTitle.text = item.name
+    override fun onBindViewHolder(holder: AssignmentViewHolder, position: Int) {
+        val tareaActual = assignments[position]
 
-        // Truco: Convertir fecha de Moodle (Timestamp) a texto legible
-        // Moodle envía segundos, Java usa milisegundos -> multiplicamos por 1000
-        val date = Date(item.dueDate * 1000L)
-        val format = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
-        holder.tvDate.text = "Vence: ${format.format(date)}"
+        // --- LÓGICA DE AGRUPACIÓN (FECHAS) ---
+        val fechaActualTexto = headerFormat.format(Date(tareaActual.dueDate * 1000))
+        var mostrarEncabezado = true
+
+        if (position > 0) {
+            val tareaAnterior = assignments[position - 1]
+            val fechaAnteriorTexto = headerFormat.format(Date(tareaAnterior.dueDate * 1000))
+            if (fechaActualTexto == fechaAnteriorTexto) {
+                mostrarEncabezado = false
+            }
+        }
+
+        holder.bind(tareaActual, mostrarEncabezado, fechaActualTexto, timeFormat)
     }
 
     override fun getItemCount() = assignments.size
 
-    fun updateData(newList: List<Assignment>) {
-        assignments = newList
-        notifyDataSetChanged()
+    class AssignmentViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        private val tvHeader: TextView = itemView.findViewById(R.id.tvDateHeader)
+        private val tvTitle: TextView = itemView.findViewById(R.id.tvAssignmentTitle)
+        private val tvCourse: TextView = itemView.findViewById(R.id.tvCourseName)
+        private val tvDate: TextView = itemView.findViewById(R.id.tvDueDate)
+        private val viewColor: View = itemView.findViewById(R.id.viewColorStrip)
+        private val ivIcon: ImageView = itemView.findViewById(R.id.ivIcon)
+
+        fun bind(assignment: Assignment, showHeader: Boolean, dateText: String, timeFormat: SimpleDateFormat) {
+
+            // 1. Encabezado de fecha
+            if (showHeader) {
+                tvHeader.visibility = View.VISIBLE
+                tvHeader.text = dateText.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+            } else {
+                tvHeader.visibility = View.GONE
+            }
+
+            // 2. Datos básicos
+            tvTitle.text = assignment.name
+            tvCourse.text = if (assignment.courseName.isNotEmpty()) assignment.courseName else "Curso General"
+
+            // 3. --- LÓGICA DE ADVERTENCIA DE TIEMPO (NUEVO) ---
+            val now = System.currentTimeMillis()
+            val dueDateMillis = assignment.dueDate * 1000
+            val diff = dueDateMillis - now
+
+            val unaHora = 60 * 60 * 1000
+            val unDia = 24 * unaHora
+
+            val fechaHoraTexto = "Vence: ${timeFormat.format(Date(dueDateMillis))}"
+
+            if (diff < 0) {
+                // A) ATRASADA (Ya pasó la fecha)
+                tvDate.text = "⚠ Atrasada ($fechaHoraTexto)"
+                tvDate.setTextColor(Color.RED)
+            } else if (diff < unDia) {
+                // B) URGENTE (Menos de 24 horas)
+                tvDate.text = "⚠ Expira pronto ($fechaHoraTexto)"
+                // Color Naranja fuerte
+                tvDate.setTextColor(Color.parseColor("#FF6D00"))
+            } else {
+                // C) NORMAL (Más de 24 horas)
+                tvDate.text = fechaHoraTexto
+                tvDate.setTextColor(Color.parseColor("#666666")) // Gris normal
+            }
+
+            // 4. Colores de la materia
+            try {
+                val color = Color.parseColor(assignment.courseColor)
+                viewColor.setBackgroundColor(color)
+                ivIcon.setColorFilter(color)
+            } catch (e: Exception) {
+                viewColor.setBackgroundColor(Color.parseColor("#6200EE"))
+            }
+        }
     }
 }
