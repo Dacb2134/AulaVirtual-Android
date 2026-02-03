@@ -18,12 +18,12 @@ class HomeActivity : AppCompatActivity() {
 
         val bottomNav = findViewById<BottomNavigationView>(R.id.bottomNavigation)
 
-        // 1. Al entrar, mostramos HomeFragment (donde está tu lista de cursos)
+        // mostramos HomeFragme
         if (savedInstanceState == null) {
             cambiarFragmento(HomeFragment())
         }
 
-        // 2. Configurar los botones del menú
+        // Configurar los botones del menú
         bottomNav.setOnItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.nav_home -> cambiarFragmento(HomeFragment())
@@ -35,7 +35,6 @@ class HomeActivity : AppCompatActivity() {
         }
     }
 
-    // Función ayudante para cambiar la "lámina"
     private fun cambiarFragmento(fragment: Fragment) {
         supportFragmentManager.beginTransaction()
             .replace(R.id.nav_host_fragment, fragment)
