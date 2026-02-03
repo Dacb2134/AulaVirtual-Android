@@ -1,5 +1,6 @@
 package com.practicas.aulavirtualapp.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.practicas.aulavirtualapp.model.Assignment
@@ -14,9 +15,57 @@ class AgendaViewModel : ViewModel() {
 
     private val repository = AuthRepository()
 
+    // 1. Guardamos la lista MAESTRA (privada) para poder filtrar sin perder datos
+    private var listaCompleta: List<Assignment> = emptyList()
+
     val agenda = MutableLiveData<List<Assignment>>()
     val mensaje = MutableLiveData<String>()
     val cargando = MutableLiveData<Boolean>()
+
+    // --- LÓGICA DE FILTROS ---
+
+    fun filtrarTodas() {
+        agenda.value = listaCompleta
+    }
+
+    fun filtrarProximos7Dias() {
+        val hoy = System.currentTimeMillis()
+        val sieteDias = hoy + (7L * 24 * 60 * 60 * 1000) // 7 días en milisegundos
+
+        val filtradas = listaCompleta.filter {
+            val fechaVencimiento = it.dueDate * 1000
+            fechaVencimiento in hoy..sieteDias
+        }
+        agenda.value = filtradas
+    }
+
+    fun filtrarAtrasadas() {
+        val hoy = System.currentTimeMillis()
+        val filtradas = listaCompleta.filter {
+            val fechaVencimiento = it.dueDate * 1000
+            fechaVencimiento < hoy // Ya pasó
+        }
+        agenda.value = filtradas
+    }
+
+    // --- PREPARACIÓN PARA NOTIFICACIONES PUSH (Futuro) ---
+    private fun detectarTareasUrgentes(tareas: List<Assignment>) {
+        val hoy = System.currentTimeMillis()
+        val manana = hoy + (24 * 60 * 60 * 1000) // Próximas 24 horas
+
+        val tareasUrgentes = tareas.filter {
+            val vencimiento = it.dueDate * 1000
+            vencimiento in hoy..manana
+        }
+
+        if (tareasUrgentes.isNotEmpty()) {
+            // TODO: FUTURO -> Aquí llamaremos al WorkManager para lanzar la notificación
+            Log.d("NOTIFICACIONES", "¡Ojo! Hay ${tareasUrgentes.size} tareas que vencen en menos de 24h.")
+            // Ejemplo: NotificationHelper.mostrarAviso(tareasUrgentes.first())
+        }
+    }
+
+    // --- CARGA DE DATOS ---
 
     fun cargarAgendaGlobal(token: String, userId: Int) {
         cargando.value = true
@@ -26,13 +75,10 @@ class AgendaViewModel : ViewModel() {
                 if (response.isSuccessful && response.body() != null) {
                     val cursos = response.body()!!
 
-                    // --- NUEVO BLOQUE: Asignar colores aleatorios fijos ---
                     val colores = listOf("#FF5722", "#4CAF50", "#2196F3", "#9C27B0", "#E91E63", "#FF9800")
                     cursos.forEachIndexed { index, curso ->
-                        // Usamos el residuo (%) para repartir los colores cíclicamente
                         curso.color = colores[index % colores.size]
                     }
-                    // -----------------------------------------------------
 
                     traerTareasDeTodosLosCursos(token, cursos)
                 } else {
@@ -58,16 +104,13 @@ class AgendaViewModel : ViewModel() {
             return
         }
 
-        // 2. Pedimos las tareas de CADA curso
         for (curso in cursos) {
             repository.getAssignments(token, curso.id).enqueue(object : Callback<AssignmentResponse> {
                 override fun onResponse(call: Call<AssignmentResponse>, response: Response<AssignmentResponse>) {
-
                     response.body()?.courses?.forEach { cursoMoodle ->
                         cursoMoodle.assignments.forEach { tarea ->
-                            // AQUÍ ESTÁ EL TRUCO: Le pegamos la etiqueta del curso a la tarea
                             tarea.courseName = curso.fullName
-                            tarea.courseColor = curso.color ?: "#6200EE" // Si no tiene color, usa morado
+                            tarea.courseColor = curso.color ?: "#6200EE"
                             listaTotalTareas.add(tarea)
                         }
                     }
@@ -81,15 +124,22 @@ class AgendaViewModel : ViewModel() {
         }
     }
 
-    // Función auxiliar para saber cuándo dejar de cargar
     private fun verificarSiTerminamos(totalCursos: Int, procesados: Int, tareas: MutableList<Assignment>) {
         if (procesados == totalCursos) {
             cargando.value = false
-            if (tareas.isEmpty()) {
+
+            // Guardamos la LISTA MAESTRA ordenada
+            listaCompleta = tareas.sortedBy { it.dueDate }
+
+            //  Revisamos si hay tareas para notificar (Lógica futura)
+            detectarTareasUrgentes(listaCompleta)
+
+            if (listaCompleta.isEmpty()) {
                 mensaje.value = "¡Todo al día! No hay tareas pendientes."
+                agenda.value = emptyList()
             } else {
-                // Ordenamos: Primero lo más urgente (menor fecha)
-                agenda.value = tareas.sortedBy { it.dueDate }
+                // Por defecto mostramos TODAS al inicio
+                filtrarTodas()
             }
         }
     }

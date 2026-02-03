@@ -11,6 +11,7 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.chip.ChipGroup // Importante
 import com.practicas.aulavirtualapp.R
 import com.practicas.aulavirtualapp.adapter.AssignmentAdapter
 import com.practicas.aulavirtualapp.viewmodel.AgendaViewModel
@@ -24,33 +25,39 @@ class AgendaFragment : Fragment() {
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        // Inflamos el diseño que creamos para la agenda
         return inflater.inflate(R.layout.fragment_agenda, container, false)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Vinculamos las vistas del XML
         val rvAgenda = view.findViewById<RecyclerView>(R.id.rvAgenda)
         val pbLoading = view.findViewById<ProgressBar>(R.id.pbLoadingAgenda)
         val tvEmpty = view.findViewById<TextView>(R.id.tvEmptyAgenda)
 
-        // Configuramos la lista (RecyclerView)
+        // Obtenemos referencia al grupo de Chips
+        val chipGroup = view.findViewById<ChipGroup>(R.id.chipGroupFilters)
+
         rvAgenda.layoutManager = LinearLayoutManager(context)
-        adapter = AssignmentAdapter() // Usamos el mismo adaptador que ya tenías
+        adapter = AssignmentAdapter()
         rvAgenda.adapter = adapter
 
-        // Inicializamos el ViewModel (El cerebro)
         viewModel = ViewModelProvider(this)[AgendaViewModel::class.java]
 
-        // Recuperamos Token y ID del usuario desde la Actividad Principal
         val token = requireActivity().intent.getStringExtra("USER_TOKEN") ?: ""
-        // OJO: Si no has pasado el USER_ID en el Login, esto será 0 y podría fallar la carga.
         val userId = requireActivity().intent.getIntExtra("USER_ID", 0)
 
-        // OBSERVADORES:
-        //  estado de "Cargando"
+        // ESCUCHAMOS LOS CLICS EN LOS FILTROS
+        chipGroup.setOnCheckedStateChangeListener { _, checkedIds ->
+            if (checkedIds.isNotEmpty()) {
+                when (checkedIds[0]) {
+                    R.id.chipAll -> viewModel.filtrarTodas()
+                    R.id.chipNext7Days -> viewModel.filtrarProximos7Dias()
+                    R.id.chipOverdue -> viewModel.filtrarAtrasadas()
+                }
+            }
+        }
+
         viewModel.cargando.observe(viewLifecycleOwner) { estaCargando ->
             if (estaCargando) {
                 pbLoading.visibility = View.VISIBLE
@@ -62,38 +69,33 @@ class AgendaFragment : Fragment() {
             }
         }
 
-        // La lista de tareas
         viewModel.agenda.observe(viewLifecycleOwner) { tareas ->
             if (tareas.isNotEmpty()) {
                 adapter.updateData(tareas)
                 tvEmpty.visibility = View.GONE
             } else {
-                // Si la lista está vacía, mostramos el mensaje
-                tvEmpty.text = "¡Todo al día! No hay tareas pendientes."
+                tvEmpty.text = "No se encontraron tareas con este filtro."
                 tvEmpty.visibility = View.VISIBLE
+                // Aunque esté vacío, actualizamos el adapter para limpiar la lista
+                adapter.updateData(emptyList())
             }
         }
 
-        // Si hay algún mensaje de error
         viewModel.mensaje.observe(viewLifecycleOwner) { texto ->
-            // Solo mostramos Toast si es un error real, no mensajes informativos
             if (texto.contains("Error") || texto.contains("Fallo")) {
                 Toast.makeText(context, texto, Toast.LENGTH_SHORT).show()
-            } else if (texto.contains("No tienes cursos")) {
+            } else if (texto.contains("No tienes cursos") || texto.contains("Todo al día")) {
                 tvEmpty.text = texto
                 tvEmpty.visibility = View.VISIBLE
             }
         }
 
-        // carga de datos
-        if (token.isNotEmpty() && userId != 0) {
+        if (token.isNotEmpty()) {
+
             viewModel.cargarAgendaGlobal(token, userId)
         } else {
-            if (userId == 0) {
-                // Si sale este mensaje, es que falta poner el ID en el MainActivity (paso siguiente)
-                tvEmpty.text = "Error: No se pudo identificar al usuario."
-                tvEmpty.visibility = View.VISIBLE
-            }
+            tvEmpty.text = "Error: Sesión no válida."
+            tvEmpty.visibility = View.VISIBLE
         }
     }
 }
