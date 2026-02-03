@@ -1,10 +1,11 @@
-package com.practicas.aulavirtualapp
+package com.practicas.aulavirtualapp.adapter
 
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import com.practicas.aulavirtualapp.R
 import com.practicas.aulavirtualapp.model.Assignment
 import java.text.SimpleDateFormat
 import java.util.Date

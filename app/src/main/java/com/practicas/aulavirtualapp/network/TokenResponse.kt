@@ -6,5 +6,8 @@ data class TokenResponse(
     @SerializedName("token") val token: String,
     @SerializedName("privatetoken") val privateToken: String? = null,
     @SerializedName("error") val error: String? = null,
-    @SerializedName("errorcode") val errorCode: String? = null
+    @SerializedName("errorcode") val errorCode: String? = null,
+
+
+    var userid: Int = 0
 )

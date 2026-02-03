@@ -1,6 +1,6 @@
-package com.practicas.aulavirtualapp
+package com.practicas.aulavirtualapp.ui
 
-import android.content.Intent // 👈 ESTA ERA LA LÍNEA QUE FALTABA
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
 import android.widget.EditText
@@ -8,6 +8,8 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
+import com.practicas.aulavirtualapp.ui.HomeActivity
+import com.practicas.aulavirtualapp.R
 import com.practicas.aulavirtualapp.viewmodel.LoginViewModel
 
 class MainActivity : AppCompatActivity() {
@@ -43,9 +45,11 @@ class MainActivity : AppCompatActivity() {
                 tvStatus.text = "¡Login Correcto!"
                 Toast.makeText(this, "Bienvenido", Toast.LENGTH_SHORT).show()
 
-
                 val intent = Intent(this, HomeActivity::class.java)
-                intent.putExtra("USER_TOKEN", response.token) // Le pasamos la llave
+                intent.putExtra("USER_TOKEN", response.token)
+
+                intent.putExtra("USER_ID", response.userid)
+
                 startActivity(intent)
                 finish()
             }
