@@ -45,9 +45,11 @@ class MainActivity : AppCompatActivity() {
                 tvStatus.text = "¡Login Correcto!"
                 Toast.makeText(this, "Bienvenido", Toast.LENGTH_SHORT).show()
 
-
                 val intent = Intent(this, HomeActivity::class.java)
-                intent.putExtra("USER_TOKEN", response.token) // Le pasamos la llave
+                intent.putExtra("USER_TOKEN", response.token)
+
+                intent.putExtra("USER_ID", response.userid)
+
                 startActivity(intent)
                 finish()
             }

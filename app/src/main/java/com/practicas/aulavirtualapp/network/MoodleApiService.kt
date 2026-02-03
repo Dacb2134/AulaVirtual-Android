@@ -2,7 +2,7 @@ package com.practicas.aulavirtualapp.network
 
 import com.practicas.aulavirtualapp.model.AssignmentResponse
 import com.practicas.aulavirtualapp.model.Course
-import com.practicas.aulavirtualapp.model.SiteInfo
+import com.practicas.aulavirtualapp.model.SiteInfoResponse
 import retrofit2.Call
 import retrofit2.http.GET
 import retrofit2.http.Query
@@ -17,13 +17,14 @@ interface MoodleApiService {
         @Query("service") service: String = "moodle_mobile_app"
     ): Call<TokenResponse>
 
-    // Obtener información de mi usuario (ID, Nombre, Foto)
+    //  Obtener información de mi usuario (ID, Nombre, Foto)
+
     @GET("webservice/rest/server.php")
     fun getSiteInfo(
         @Query("wstoken") token: String,
         @Query("wsfunction") function: String = "core_webservice_get_site_info",
         @Query("moodlewsrestformat") format: String = "json"
-    ): Call<SiteInfo>
+    ): Call<SiteInfoResponse>
 
     // Obtener MIS cursos
     @GET("webservice/rest/server.php")
@@ -35,12 +36,10 @@ interface MoodleApiService {
     ): Call<List<Course>>
 
     // Obtener TAREAS de un curso específico
-
     @GET("webservice/rest/server.php")
     fun getCourseAssignments(
         @Query("wstoken") token: String,
         @Query("courseids[0]") courseId: Int,
-        // 👇 Aquí es donde le decimos a Moodle qué función queremos usar
         @Query("wsfunction") function: String = "mod_assign_get_assignments",
         @Query("moodlewsrestformat") format: String = "json"
     ): Call<AssignmentResponse>

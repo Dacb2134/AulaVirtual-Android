@@ -22,13 +22,13 @@ class CourseDetailActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_course_detail)
 
-        // 1. Recibir datos (incluyendo el TOKEN)
+        // Recibir datos
         val courseName = intent.getStringExtra("COURSE_NAME") ?: "Curso"
         val courseId = intent.getIntExtra("COURSE_ID", 0)
         val courseColor = intent.getIntExtra("COURSE_COLOR", 0)
         val token = intent.getStringExtra("USER_TOKEN") // <--- Importante
 
-        // 2. Configurar diseño visual
+        // Configurar diseño visual
         val tvTitle = findViewById<TextView>(R.id.tvCourseTitle)
         val header = findViewById<View>(R.id.viewHeader)
         val pbLoading = findViewById<ProgressBar>(R.id.pbLoading)
@@ -37,12 +37,12 @@ class CourseDetailActivity : AppCompatActivity() {
         tvTitle.text = courseName
         if (courseColor != 0) header.setBackgroundColor(courseColor)
 
-        // 3. Configurar la Lista (RecyclerView)
+        // Configurar la Lista (RecyclerView)
         rvAssignments.layoutManager = LinearLayoutManager(this)
         adapter = AssignmentAdapter()
         rvAssignments.adapter = adapter
 
-        // 4. Conectar con el ViewModel
+        //  Conectar con el ViewModel
         viewModel = ViewModelProvider(this)[CourseDetailViewModel::class.java]
 
         // Si tenemos token y ID, pedimos las tareas
