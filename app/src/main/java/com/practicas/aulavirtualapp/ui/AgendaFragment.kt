@@ -22,6 +22,7 @@ class AgendaFragment : Fragment() {
 
     private lateinit var adapter: AssignmentAdapter
     private lateinit var viewModel: AgendaViewModel
+    private var isUserRefreshing = false
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -54,9 +55,11 @@ class AgendaFragment : Fragment() {
         // NUEVO: Listener Swipe
         swipeRefresh.setOnRefreshListener {
             if (token.isNotEmpty()) {
+                isUserRefreshing = true
                 viewModel.cargarAgendaGlobal(token, userId)
             } else {
                 swipeRefresh.isRefreshing = false
+                isUserRefreshing = false
             }
         }
 
@@ -72,10 +75,10 @@ class AgendaFragment : Fragment() {
 
         viewModel.cargando.observe(viewLifecycleOwner) { estaCargando ->
             // 1. Controlamos la bolita de arriba (Swipe)
-            swipeRefresh.isRefreshing = estaCargando
+            swipeRefresh.isRefreshing = isUserRefreshing && estaCargando
 
             // 2. Controlamos el Zorro del centro
-            if (estaCargando && !swipeRefresh.isRefreshing) {
+            if (estaCargando && !isUserRefreshing) {
                 // Si carga y NO estamos jalando el dedo -> MUESTRA ZORRO
                 pbLoading.visibility = View.VISIBLE
 
@@ -88,6 +91,10 @@ class AgendaFragment : Fragment() {
 
                 // Mostramos la lista si ya hay datos
                 if (!estaCargando) rvAgenda.visibility = View.VISIBLE
+            }
+
+            if (!estaCargando) {
+                isUserRefreshing = false
             }
         }
 
