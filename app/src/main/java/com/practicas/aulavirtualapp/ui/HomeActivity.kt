@@ -14,7 +14,7 @@ import com.practicas.aulavirtualapp.ui.HomeFragment
 import com.practicas.aulavirtualapp.ui.ProfileFragment
 import com.practicas.aulavirtualapp.R
 
-class HomeActivity : AppCompatActivity() {
+open class HomeActivity : AppCompatActivity() {
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()

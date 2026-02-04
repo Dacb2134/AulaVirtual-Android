@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Aula Virtual App</string>
+    <string name="google_oauth_client_id">TU_CLIENT_ID_GOOGLE.apps.googleusercontent.com</string>
+    <string name="moodle_oauth_redirect_uri">com.practicas.aulavirtualapp:/oauth2redirect</string>
 </resources>

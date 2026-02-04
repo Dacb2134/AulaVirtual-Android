@@ -9,6 +9,7 @@ import com.practicas.aulavirtualapp.model.EnrolledUser
 import com.practicas.aulavirtualapp.model.GradeReportResponse
 import com.practicas.aulavirtualapp.model.MoodleFile
 import com.practicas.aulavirtualapp.model.MoodleUploadFile
+import com.practicas.aulavirtualapp.model.OAuthTokenResponse
 import com.practicas.aulavirtualapp.model.SaveSubmissionResponse
 import com.practicas.aulavirtualapp.model.SiteInfoResponse
 import com.practicas.aulavirtualapp.model.UserDetail
@@ -26,6 +27,9 @@ class AuthRepository {
 
     // --- Login y Sitio ---
     fun login(user: String, pass: String): Call<TokenResponse> = apiService.login(user, pass)
+
+    fun loginWithOAuth(authCode: String, redirectUri: String): Call<OAuthTokenResponse> =
+        apiService.loginWithOAuth(authCode = authCode, redirectUri = redirectUri)
 
     fun getSiteInfo(token: String): Call<SiteInfoResponse> = apiService.getSiteInfo(token)
 

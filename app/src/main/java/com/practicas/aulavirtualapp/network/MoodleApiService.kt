@@ -7,6 +7,7 @@ import com.practicas.aulavirtualapp.model.CourseSection
 import com.practicas.aulavirtualapp.model.EnrolledUser
 import com.practicas.aulavirtualapp.model.GradeReportResponse
 import com.practicas.aulavirtualapp.model.MoodleUploadFile
+import com.practicas.aulavirtualapp.model.OAuthTokenResponse
 import com.practicas.aulavirtualapp.model.SaveSubmissionResponse
 import com.practicas.aulavirtualapp.model.SiteInfoResponse
 import com.practicas.aulavirtualapp.model.UserDetail
@@ -29,6 +30,14 @@ interface MoodleApiService {
         @Query("password") password: String,
         @Query("service") service: String = "moodle_mobile_app"
     ): Call<TokenResponse>
+
+    @FormUrlEncoded
+    @POST("login/oauth2/token.php")
+    fun loginWithOAuth(
+        @Field("grant_type") grantType: String = "authorization_code",
+        @Field("code") authCode: String,
+        @Field("redirect_uri") redirectUri: String
+    ): Call<OAuthTokenResponse>
 
     @POST("webservice/rest/server.php?wsfunction=core_webservice_get_site_info&moodlewsrestformat=json")
     fun getSiteInfo(@Query("wstoken") token: String): Call<SiteInfoResponse>
