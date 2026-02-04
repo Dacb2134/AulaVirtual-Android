@@ -5,6 +5,8 @@ import com.practicas.aulavirtualapp.model.AssignmentResponse
 import com.practicas.aulavirtualapp.model.BadgeResponse
 import com.practicas.aulavirtualapp.model.Course
 import com.practicas.aulavirtualapp.model.CourseSection
+import com.practicas.aulavirtualapp.model.EnrolledUser
+import com.practicas.aulavirtualapp.model.GradeReportResponse
 import com.practicas.aulavirtualapp.model.MoodleFile
 import com.practicas.aulavirtualapp.model.SiteInfoResponse
 import com.practicas.aulavirtualapp.model.UserDetail
@@ -42,6 +44,12 @@ class AuthRepository {
 
     // --- Extras ---
     fun getUserBadges(token: String, userId: Int): Call<BadgeResponse> = apiService.getUserBadges(token, userId)
+
+    fun getGradeReport(token: String, courseId: Int, userId: Int): Call<GradeReportResponse> =
+        apiService.getGradeReport(token, courseId, userId)
+
+    fun getEnrolledUsers(token: String, courseId: Int): Call<List<EnrolledUser>> =
+        apiService.getEnrolledUsers(token, courseId)
 
     fun getFilesInfo(token: String, userId: Int): Call<PrivateFilesInfo> {
         return apiService.getFilesInfo(token, userId)
