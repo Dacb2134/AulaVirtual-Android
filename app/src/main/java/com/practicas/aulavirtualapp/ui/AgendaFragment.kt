@@ -15,6 +15,7 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.google.android.material.chip.ChipGroup
 import com.practicas.aulavirtualapp.R
 import com.practicas.aulavirtualapp.adapter.AssignmentAdapter
+import com.practicas.aulavirtualapp.utils.setupBrandColors
 import com.practicas.aulavirtualapp.viewmodel.AgendaViewModel
 
 class AgendaFragment : Fragment() {
@@ -39,7 +40,7 @@ class AgendaFragment : Fragment() {
 
         // NUEVO: Referencia Swipe
         val swipeRefresh = view.findViewById<SwipeRefreshLayout>(R.id.swipeRefreshAgenda)
-        swipeRefresh.setColorSchemeResources(R.color.primary, R.color.secondary)
+        swipeRefresh.setupBrandColors()
 
         rvAgenda.layoutManager = LinearLayoutManager(context)
         adapter = AssignmentAdapter()
