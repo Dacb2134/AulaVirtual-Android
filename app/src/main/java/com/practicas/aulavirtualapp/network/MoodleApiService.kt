@@ -6,13 +6,19 @@ import com.practicas.aulavirtualapp.model.Course
 import com.practicas.aulavirtualapp.model.CourseSection
 import com.practicas.aulavirtualapp.model.EnrolledUser
 import com.practicas.aulavirtualapp.model.GradeReportResponse
+import com.practicas.aulavirtualapp.model.MoodleUploadFile
+import com.practicas.aulavirtualapp.model.SaveSubmissionResponse
 import com.practicas.aulavirtualapp.model.SiteInfoResponse
 import com.practicas.aulavirtualapp.model.UserDetail
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
 import retrofit2.Call
 import retrofit2.http.Field
 import retrofit2.http.FormUrlEncoded
 import retrofit2.http.GET
+import retrofit2.http.Multipart
 import retrofit2.http.POST
+import retrofit2.http.Part
 import retrofit2.http.Query
 
 interface MoodleApiService {
@@ -49,9 +55,31 @@ interface MoodleApiService {
     fun getCourseAssignments(
         @Query("wstoken") token: String,
         @Query("courseids[0]") courseId: Int,
+        @Query("includeconfigs") includeConfigs: Int = 1,
         @Query("wsfunction") function: String = "mod_assign_get_assignments",
         @Query("moodlewsrestformat") format: String = "json"
     ): Call<AssignmentResponse>
+
+    @Multipart
+    @POST("webservice/upload.php")
+    fun uploadAssignmentFile(
+        @Part("token") token: RequestBody,
+        @Part("filepath") filepath: RequestBody,
+        @Part("itemid") itemId: RequestBody,
+        @Part file: MultipartBody.Part
+    ): Call<List<MoodleUploadFile>>
+
+    @FormUrlEncoded
+    @POST("webservice/rest/server.php")
+    fun saveAssignmentSubmission(
+        @Field("wstoken") token: String,
+        @Field("wsfunction") function: String = "mod_assign_save_submission",
+        @Field("moodlewsrestformat") format: String = "json",
+        @Field("assignmentid") assignmentId: Int,
+        @Field("plugindata[onlinetext_editor][text]") text: String? = null,
+        @Field("plugindata[onlinetext_editor][format]") textFormat: Int? = 1,
+        @Field("plugindata[files_filemanager]") fileManagerId: Int? = null
+    ): Call<SaveSubmissionResponse>
 
     @GET("webservice/rest/server.php")
     fun getCourseContents(

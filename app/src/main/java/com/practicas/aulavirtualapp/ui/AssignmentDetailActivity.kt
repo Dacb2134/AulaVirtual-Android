@@ -22,8 +22,17 @@ import com.google.android.material.textfield.TextInputLayout
 import com.practicas.aulavirtualapp.R
 import com.practicas.aulavirtualapp.model.Assignment
 import com.practicas.aulavirtualapp.model.AssignmentConfig
+import com.practicas.aulavirtualapp.model.MoodleUploadFile
+import com.practicas.aulavirtualapp.model.SaveSubmissionResponse
 import com.practicas.aulavirtualapp.network.RetrofitClient
+import com.practicas.aulavirtualapp.repository.AuthRepository
 import com.practicas.aulavirtualapp.utils.AssignmentProgressStore
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -36,6 +45,8 @@ class AssignmentDetailActivity : AppCompatActivity() {
     private var allowFileSubmission: Boolean = true
     private var allowTextSubmission: Boolean = true
     private var fileExtensions: String = ""
+    private var userToken: String = ""
+    private val authRepository = AuthRepository()
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -93,6 +104,7 @@ class AssignmentDetailActivity : AppCompatActivity() {
         allowFileSubmission = intent.getBooleanExtra(EXTRA_ASSIGNMENT_ALLOW_FILES, true)
         allowTextSubmission = intent.getBooleanExtra(EXTRA_ASSIGNMENT_ALLOW_TEXT, true)
         fileExtensions = intent.getStringExtra(EXTRA_ASSIGNMENT_FILE_EXTENSIONS).orEmpty()
+        userToken = intent.getStringExtra(EXTRA_USER_TOKEN).orEmpty()
 
         if (courseColor != 0) {
             header.setBackgroundColor(courseColor)
@@ -150,13 +162,29 @@ class AssignmentDetailActivity : AppCompatActivity() {
                 Toast.makeText(this, "Agrega texto o un archivo para continuar.", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            AssignmentProgressStore.setCompleted(this, assignmentId, true)
-            updateCompleteButton(btnMarkComplete)
-            Toast.makeText(
-                this,
-                "Entrega registrada en la app. Si necesitas confirmación oficial, revisa Moodle.",
-                Toast.LENGTH_LONG
-            ).show()
+            if (userToken.isBlank()) {
+                Toast.makeText(this, "No se encontró el token de Moodle.", Toast.LENGTH_LONG).show()
+                return@setOnClickListener
+            }
+
+            btnSubmit.isEnabled = false
+            if (hasFile && selectedFileUri != null) {
+                submitWithFile(
+                    token = userToken,
+                    assignmentId = assignmentId,
+                    text = etText.text?.toString(),
+                    fileUri = selectedFileUri!!,
+                    onComplete = { btnSubmit.isEnabled = true }
+                )
+            } else {
+                saveSubmission(
+                    token = userToken,
+                    assignmentId = assignmentId,
+                    text = etText.text?.toString(),
+                    fileManagerId = null,
+                    onComplete = { btnSubmit.isEnabled = true }
+                )
+            }
         }
 
         updateCompleteButton(btnMarkComplete)
@@ -301,6 +329,126 @@ class AssignmentDetailActivity : AppCompatActivity() {
         return if (mimeTypes.isEmpty()) arrayOf("*/*") else mimeTypes.toTypedArray()
     }
 
+    private fun submitWithFile(
+        token: String,
+        assignmentId: Int,
+        text: String?,
+        fileUri: Uri,
+        onComplete: () -> Unit
+    ) {
+        val fileName = fileName(fileUri)
+        val mimeType = contentResolver.getType(fileUri) ?: "application/octet-stream"
+        val fileBytes = contentResolver.openInputStream(fileUri)?.use { it.readBytes() }
+        if (fileBytes == null) {
+            Toast.makeText(this, "No se pudo leer el archivo seleccionado.", Toast.LENGTH_LONG).show()
+            onComplete()
+            return
+        }
+
+        val tokenBody = token.toRequestBody("text/plain".toMediaType())
+        val filePathBody = "/".toRequestBody("text/plain".toMediaType())
+        val itemIdBody = "0".toRequestBody("text/plain".toMediaType())
+        val fileBody = fileBytes.toRequestBody(mimeType.toMediaType())
+        val filePart = MultipartBody.Part.createFormData("file", fileName, fileBody)
+
+        authRepository.uploadAssignmentFile(tokenBody, filePathBody, itemIdBody, filePart)
+            .enqueue(object : Callback<List<MoodleUploadFile>> {
+                override fun onResponse(
+                    call: Call<List<MoodleUploadFile>>,
+                    response: Response<List<MoodleUploadFile>>
+                ) {
+                    if (!response.isSuccessful) {
+                        Toast.makeText(
+                            this@AssignmentDetailActivity,
+                            "Error al subir el archivo (${response.code()}).",
+                            Toast.LENGTH_LONG
+                        ).show()
+                        onComplete()
+                        return
+                    }
+                    val uploaded = response.body().orEmpty()
+                    val itemId = uploaded.firstOrNull()?.itemId
+                    if (itemId == null || itemId == 0) {
+                        Toast.makeText(
+                            this@AssignmentDetailActivity,
+                            "Moodle no devolvió el itemid del archivo.",
+                            Toast.LENGTH_LONG
+                        ).show()
+                        onComplete()
+                        return
+                    }
+                    saveSubmission(
+                        token = token,
+                        assignmentId = assignmentId,
+                        text = text,
+                        fileManagerId = itemId,
+                        onComplete = onComplete
+                    )
+                }
+
+                override fun onFailure(call: Call<List<MoodleUploadFile>>, t: Throwable) {
+                    Toast.makeText(
+                        this@AssignmentDetailActivity,
+                        "Error al subir archivo: ${t.localizedMessage}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    onComplete()
+                }
+            })
+    }
+
+    private fun saveSubmission(
+        token: String,
+        assignmentId: Int,
+        text: String?,
+        fileManagerId: Int?,
+        onComplete: () -> Unit
+    ) {
+        authRepository.saveAssignmentSubmission(token, assignmentId, text, fileManagerId)
+            .enqueue(object : Callback<SaveSubmissionResponse> {
+                override fun onResponse(
+                    call: Call<SaveSubmissionResponse>,
+                    response: Response<SaveSubmissionResponse>
+                ) {
+                    onComplete()
+                    if (!response.isSuccessful) {
+                        Toast.makeText(
+                            this@AssignmentDetailActivity,
+                            "Error al enviar la entrega (${response.code()}).",
+                            Toast.LENGTH_LONG
+                        ).show()
+                        return
+                    }
+                    val body = response.body()
+                    val warnings = body?.warnings?.joinToString(" · ") { it.message.orEmpty() }
+                    if (!warnings.isNullOrBlank()) {
+                        Toast.makeText(
+                            this@AssignmentDetailActivity,
+                            "Entrega enviada con advertencias: $warnings",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    } else {
+                        Toast.makeText(
+                            this@AssignmentDetailActivity,
+                            "Entrega enviada a Moodle correctamente.",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                    AssignmentProgressStore.setCompleted(this@AssignmentDetailActivity, assignmentId, true)
+                    updateCompleteButton(findViewById(R.id.btnAssignmentMarkComplete))
+                }
+
+                override fun onFailure(call: Call<SaveSubmissionResponse>, t: Throwable) {
+                    onComplete()
+                    Toast.makeText(
+                        this@AssignmentDetailActivity,
+                        "Error al enviar entrega: ${t.localizedMessage}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            })
+    }
+
     companion object {
         private const val EXTRA_ASSIGNMENT_TITLE = "extra_assignment_title"
         private const val EXTRA_ASSIGNMENT_DESCRIPTION = "extra_assignment_description"
@@ -316,12 +464,14 @@ class AssignmentDetailActivity : AppCompatActivity() {
         private const val EXTRA_ASSIGNMENT_ALLOW_FILES = "extra_assignment_allow_files"
         private const val EXTRA_ASSIGNMENT_ALLOW_TEXT = "extra_assignment_allow_text"
         private const val EXTRA_ASSIGNMENT_FILE_EXTENSIONS = "extra_assignment_file_extensions"
+        private const val EXTRA_USER_TOKEN = "extra_user_token"
 
         fun createIntent(
             context: Context,
             assignment: Assignment,
             fallbackCourseName: String,
-            fallbackCourseColor: Int
+            fallbackCourseColor: Int,
+            userToken: String
         ): Intent {
             val intent = Intent(context, AssignmentDetailActivity::class.java)
             val courseName = if (assignment.courseName.isNotBlank()) assignment.courseName else fallbackCourseName
@@ -350,6 +500,7 @@ class AssignmentDetailActivity : AppCompatActivity() {
             intent.putExtra(EXTRA_ASSIGNMENT_ALLOW_FILES, submissionInfo.allowFiles)
             intent.putExtra(EXTRA_ASSIGNMENT_ALLOW_TEXT, submissionInfo.allowText)
             intent.putExtra(EXTRA_ASSIGNMENT_FILE_EXTENSIONS, submissionInfo.fileExtensions)
+            intent.putExtra(EXTRA_USER_TOKEN, userToken)
             return intent
         }
 
