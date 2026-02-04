@@ -1,0 +1,71 @@
+package com.practicas.aulavirtualapp.ui
+
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.ProgressBar
+import android.widget.TextView
+import android.widget.Toast
+import androidx.fragment.app.Fragment
+import androidx.lifecycle.ViewModelProvider
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.practicas.aulavirtualapp.R
+import com.practicas.aulavirtualapp.adapter.CourseGradeAdapter
+import com.practicas.aulavirtualapp.viewmodel.CourseGradesViewModel
+
+class CourseGradesFragment : Fragment() {
+
+    private lateinit var viewModel: CourseGradesViewModel
+    private lateinit var adapter: CourseGradeAdapter
+
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
+        return inflater.inflate(R.layout.fragment_course_grades, container, false)
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        val rvGrades = view.findViewById<RecyclerView>(R.id.rvCourseGrades)
+        val pbLoading = view.findViewById<ProgressBar>(R.id.pbGradesLoading)
+        val tvEmpty = view.findViewById<TextView>(R.id.tvGradesEmpty)
+
+        adapter = CourseGradeAdapter()
+        rvGrades.layoutManager = LinearLayoutManager(context)
+        rvGrades.adapter = adapter
+
+        val courseId = arguments?.getInt("COURSE_ID") ?: 0
+        val token = arguments?.getString("USER_TOKEN")
+        val userId = arguments?.getInt("USER_ID") ?: 0
+
+        viewModel = ViewModelProvider(requireActivity())[CourseGradesViewModel::class.java]
+
+        if (!token.isNullOrBlank() && courseId != 0 && userId != 0) {
+            pbLoading.visibility = View.VISIBLE
+            viewModel.loadGrades(token, courseId, userId)
+        } else {
+            pbLoading.visibility = View.GONE
+            tvEmpty.visibility = View.VISIBLE
+        }
+
+        viewModel.grades.observe(viewLifecycleOwner) { grades ->
+            pbLoading.visibility = View.GONE
+            if (grades.isEmpty()) {
+                tvEmpty.visibility = View.VISIBLE
+                adapter.updateData(emptyList())
+            } else {
+                tvEmpty.visibility = View.GONE
+                adapter.updateData(grades)
+            }
+        }
+
+        viewModel.message.observe(viewLifecycleOwner) { message ->
+            pbLoading.visibility = View.GONE
+            context?.let { Toast.makeText(it, message, Toast.LENGTH_LONG).show() }
+        }
+    }
+}
