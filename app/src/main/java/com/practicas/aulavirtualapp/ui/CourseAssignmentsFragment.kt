@@ -62,7 +62,8 @@ class CourseAssignmentsFragment : Fragment() {
                     requireContext(),
                     assignment,
                     arguments?.getString("COURSE_NAME").orEmpty(),
-                    arguments?.getInt("COURSE_COLOR") ?: 0
+                    arguments?.getInt("COURSE_COLOR") ?: 0,
+                    arguments?.getString("USER_TOKEN").orEmpty()
                 )
                 startActivity(intent)
             },

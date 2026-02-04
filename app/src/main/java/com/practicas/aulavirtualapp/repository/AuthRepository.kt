@@ -8,11 +8,15 @@ import com.practicas.aulavirtualapp.model.CourseSection
 import com.practicas.aulavirtualapp.model.EnrolledUser
 import com.practicas.aulavirtualapp.model.GradeReportResponse
 import com.practicas.aulavirtualapp.model.MoodleFile
+import com.practicas.aulavirtualapp.model.MoodleUploadFile
+import com.practicas.aulavirtualapp.model.SaveSubmissionResponse
 import com.practicas.aulavirtualapp.model.SiteInfoResponse
 import com.practicas.aulavirtualapp.model.UserDetail
 import com.practicas.aulavirtualapp.network.PrivateFilesInfo
 import com.practicas.aulavirtualapp.network.RetrofitClient
 import com.practicas.aulavirtualapp.network.TokenResponse
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
 import retrofit2.Call
 
 class AuthRepository {
@@ -53,4 +57,28 @@ class AuthRepository {
 
     fun getFilesInfo(token: String, userId: Int): Call<PrivateFilesInfo> {
         return apiService.getFilesInfo(token, userId)
-}}
+    }
+
+    fun uploadAssignmentFile(
+        token: RequestBody,
+        filepath: RequestBody,
+        itemId: RequestBody,
+        file: MultipartBody.Part
+    ): Call<List<MoodleUploadFile>> {
+        return apiService.uploadAssignmentFile(token, filepath, itemId, file)
+    }
+
+    fun saveAssignmentSubmission(
+        token: String,
+        assignmentId: Int,
+        text: String?,
+        fileManagerId: Int?
+    ): Call<SaveSubmissionResponse> {
+        return apiService.saveAssignmentSubmission(
+            token = token,
+            assignmentId = assignmentId,
+            text = text,
+            fileManagerId = fileManagerId
+        )
+    }
+}
