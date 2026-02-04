@@ -5,18 +5,24 @@ import android.text.Html
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
+import androidx.core.content.ContextCompat
+import com.bumptech.glide.Glide
 import com.practicas.aulavirtualapp.R
 import com.practicas.aulavirtualapp.model.CourseSection
 import com.practicas.aulavirtualapp.viewmodel.CourseContentViewModel
+import com.practicas.aulavirtualapp.viewmodel.CourseParticipantsViewModel
 
 class CourseOverviewFragment : Fragment() {
 
     private lateinit var viewModel: CourseContentViewModel
+    private lateinit var participantsViewModel: CourseParticipantsViewModel
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -34,6 +40,12 @@ class CourseOverviewFragment : Fragment() {
         val tvSectionsCount = view.findViewById<TextView>(R.id.tvOverviewSectionsCount)
         val tvActivitiesCount = view.findViewById<TextView>(R.id.tvOverviewActivitiesCount)
         val pbLoading = view.findViewById<ProgressBar>(R.id.pbOverviewLoading)
+        val tvAssignmentsCount = view.findViewById<TextView>(R.id.tvOverviewAssignmentsCount)
+        val tvForumsCount = view.findViewById<TextView>(R.id.tvOverviewForumsCount)
+        val layoutActivityTypes = view.findViewById<LinearLayout>(R.id.layoutOverviewActivityTypes)
+        val ivTeacherPhoto = view.findViewById<ImageView>(R.id.ivOverviewTeacherPhoto)
+        val tvTeacherName = view.findViewById<TextView>(R.id.tvOverviewTeacherName)
+        val tvTeacherRole = view.findViewById<TextView>(R.id.tvOverviewTeacherRole)
 
         val courseName = arguments?.getString("COURSE_NAME") ?: "Curso"
         val courseShortName = arguments?.getString("COURSE_SHORT_NAME") ?: ""
@@ -44,15 +56,51 @@ class CourseOverviewFragment : Fragment() {
         tvCourseShort.text = courseShortName.ifBlank { "Código no disponible" }
 
         viewModel = ViewModelProvider(requireActivity())[CourseContentViewModel::class.java]
+        participantsViewModel = ViewModelProvider(requireActivity())[CourseParticipantsViewModel::class.java]
 
         if (!token.isNullOrBlank() && courseId != 0) {
             pbLoading.visibility = View.VISIBLE
             viewModel.loadCourseContents(token, courseId)
+            participantsViewModel.loadTeachers(token, courseId)
         }
 
         viewModel.sections.observe(viewLifecycleOwner) { sections ->
             pbLoading.visibility = View.GONE
-            updateOverview(tvSummary, tvSectionsCount, tvActivitiesCount, sections)
+            updateOverview(
+                tvSummary = tvSummary,
+                tvSectionsCount = tvSectionsCount,
+                tvActivitiesCount = tvActivitiesCount,
+                tvAssignmentsCount = tvAssignmentsCount,
+                tvForumsCount = tvForumsCount,
+                layoutActivityTypes = layoutActivityTypes,
+                sections = sections
+            )
+        }
+
+        participantsViewModel.teachers.observe(viewLifecycleOwner) { teachers ->
+            val teacher = teachers.firstOrNull()
+            if (teacher != null) {
+                tvTeacherName.text = teacher.fullName ?: "Docente sin nombre"
+                val roleName = teacher.roles.firstOrNull()?.name ?: "Docente"
+                tvTeacherRole.text = roleName
+                if (!teacher.profileImageUrl.isNullOrBlank()) {
+                    Glide.with(this)
+                        .load(teacher.profileImageUrl)
+                        .placeholder(R.drawable.ic_baseline_person_24)
+                        .circleCrop()
+                        .into(ivTeacherPhoto)
+                } else {
+                    ivTeacherPhoto.setImageResource(R.drawable.ic_baseline_person_24)
+                }
+            } else {
+                tvTeacherName.text = "Docente por confirmar"
+                tvTeacherRole.text = "Sin asignar"
+                ivTeacherPhoto.setImageResource(R.drawable.ic_baseline_person_24)
+            }
+        }
+
+        participantsViewModel.message.observe(viewLifecycleOwner) { message ->
+            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
         }
 
         viewModel.message.observe(viewLifecycleOwner) { message ->
@@ -65,15 +113,45 @@ class CourseOverviewFragment : Fragment() {
         tvSummary: TextView,
         tvSectionsCount: TextView,
         tvActivitiesCount: TextView,
+        tvAssignmentsCount: TextView,
+        tvForumsCount: TextView,
+        layoutActivityTypes: LinearLayout,
         sections: List<CourseSection>
     ) {
         val visibleSections = sections.filter { (it.visible ?: 1) == 1 }
-        val totalActivities = visibleSections.sumOf { it.modules.size }
+        val visibleModules = visibleSections.flatMap { section ->
+            section.modules.filter { (it.visible ?: 1) == 1 }
+        }
+        val totalActivities = visibleModules.size
+        val assignmentCount = visibleModules.count { it.modName == "assign" }
+        val forumCount = visibleModules.count { it.modName == "forum" }
         val summarySection = visibleSections.firstOrNull { !it.summary.isNullOrBlank() }
         val summaryText = summarySection?.summary?.takeIf { it.isNotBlank() } ?: "Sin descripción disponible."
 
         tvSectionsCount.text = visibleSections.size.toString()
         tvActivitiesCount.text = totalActivities.toString()
+        tvAssignmentsCount.text = assignmentCount.toString()
+        tvForumsCount.text = forumCount.toString()
         tvSummary.text = Html.fromHtml(summaryText, Html.FROM_HTML_MODE_LEGACY)
+
+        val activityTypeCounts = visibleModules.groupingBy { module ->
+            module.modPlural ?: module.modName ?: "Actividad"
+        }.eachCount()
+
+        layoutActivityTypes.removeAllViews()
+        if (activityTypeCounts.isEmpty()) {
+            val emptyView = TextView(layoutActivityTypes.context)
+            emptyView.text = "Sin actividades registradas en Moodle."
+            emptyView.setTextColor(ContextCompat.getColor(layoutActivityTypes.context, R.color.text_secondary))
+            layoutActivityTypes.addView(emptyView)
+        } else {
+            activityTypeCounts.entries.sortedByDescending { it.value }.forEach { entry ->
+                val textView = TextView(layoutActivityTypes.context)
+                textView.text = "• ${entry.key}: ${entry.value}"
+                textView.setTextAppearance(android.R.style.TextAppearance_Material_Body2)
+                textView.setPadding(0, 6, 0, 6)
+                layoutActivityTypes.addView(textView)
+            }
+        }
     }
 }

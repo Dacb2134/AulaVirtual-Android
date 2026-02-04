@@ -37,7 +37,8 @@ class CourseDetailActivity : AppCompatActivity() {
             "COURSE_NAME" to courseName,
             "COURSE_SHORT_NAME" to courseShortName,
             "COURSE_COLOR" to courseColor,
-            "USER_TOKEN" to token
+            "USER_TOKEN" to token,
+            "USER_ID" to userId
         )
 
         val header = findViewById<android.view.View>(R.id.viewHeader)
@@ -62,6 +63,7 @@ class CourseDetailActivity : AppCompatActivity() {
                 R.id.nav_course_overview -> cambiarFragmento(CourseOverviewFragment())
                 R.id.nav_course_content -> cambiarFragmento(CourseContentFragment())
                 R.id.nav_course_assignments -> cambiarFragmento(CourseAssignmentsFragment())
+                R.id.nav_course_grades -> cambiarFragmento(CourseGradesFragment())
             }
             true
         }

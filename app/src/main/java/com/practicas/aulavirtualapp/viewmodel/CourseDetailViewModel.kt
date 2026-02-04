@@ -14,7 +14,7 @@ class CourseDetailViewModel : ViewModel() {
     private val repository = AuthRepository()
 
     // LiveData para avisar a la pantalla cuando lleguen las tareas
-    val assignments = MutableLiveData<List<Assignment>>()
+    val assignments = MutableLiveData<List<Assignment>>(emptyList())
     val message = MutableLiveData<String>()
 
     private var lastCourseId: Int? = null
@@ -55,12 +55,14 @@ class CourseDetailViewModel : ViewModel() {
                 } else {
                     Log.e("MI_APP", "Error del servidor: Código ${response.code()}")
                     message.value = "Error al cargar tareas: ${response.code()}"
+                    assignments.value = emptyList()
                 }
             }
 
             override fun onFailure(call: Call<AssignmentResponse>, t: Throwable) {
                 Log.e("MI_APP", "Fallo de conexión crítico: ${t.message}")
                 message.value = "Fallo de conexión: ${t.message}"
+                assignments.value = emptyList()
             }
         })
     }
