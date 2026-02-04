@@ -150,7 +150,7 @@ class ProfileFragment : Fragment() {
                 .into(ivProfilePic)
         }
 
-        // 3. EXTRAS (Insignias)
+
         viewModel.badges.observe(viewLifecycleOwner) { tvBadgeCount.text = it.size.toString() }
 
         // 4. ARCHIVOS (Resumen)
