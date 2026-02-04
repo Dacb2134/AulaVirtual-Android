@@ -19,8 +19,8 @@ class CourseDetailViewModel : ViewModel() {
 
     private var lastCourseId: Int? = null
 
-    fun loadAssignments(token: String, courseId: Int) {
-        if (lastCourseId == courseId && assignments.value != null) return
+    fun loadAssignments(token: String, courseId: Int, forceRefresh: Boolean = false) {
+        if (!forceRefresh && lastCourseId == courseId && assignments.value != null) return
         lastCourseId = courseId
 
         Log.d("MI_APP", "Pidiendo tareas a Moodle... Token: $token, CourseID: $courseId")
@@ -41,7 +41,7 @@ class CourseDetailViewModel : ViewModel() {
                         Log.d("MI_APP", "¡Curso encontrado! Tiene ${cursoEncontrado.assignments.size} tareas.")
 
                         if (cursoEncontrado.assignments.isNotEmpty()) {
-                            assignments.value = cursoEncontrado.assignments
+                            assignments.value = cursoEncontrado.assignments.sortedBy { it.dueDate ?: 0L }
                         } else {
                             // Si la lista está vacía
                             assignments.value = emptyList()

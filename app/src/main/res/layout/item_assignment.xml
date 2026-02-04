@@ -87,10 +87,22 @@
                 tools:text="Vence: 23:59"
                 android:textColor="#666666"
                 android:textSize="12sp"
-                app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="@id/tvAssignmentTitle"
                 app:layout_constraintStart_toStartOf="@id/tvAssignmentTitle"
                 app:layout_constraintTop_toBottomOf="@id/tvCourseName" />
+
+            <TextView
+                android:id="@+id/tvAssignmentAction"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="Ver detalles"
+                android:textColor="@color/primary"
+                android:textSize="12sp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="@id/tvAssignmentTitle"
+                app:layout_constraintStart_toStartOf="@id/tvAssignmentTitle"
+                app:layout_constraintTop_toBottomOf="@id/tvDueDate" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.cardview.widget.CardView>

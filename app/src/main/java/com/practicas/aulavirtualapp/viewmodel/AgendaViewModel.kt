@@ -33,7 +33,7 @@ class AgendaViewModel : ViewModel() {
         val sieteDias = hoy + (7L * 24 * 60 * 60 * 1000) // 7 días en milisegundos
 
         val filtradas = listaCompleta.filter {
-            val fechaVencimiento = it.dueDate * 1000
+            val fechaVencimiento = (it.dueDate ?: 0L) * 1000
             fechaVencimiento in hoy..sieteDias
         }
         agenda.value = filtradas
@@ -42,7 +42,7 @@ class AgendaViewModel : ViewModel() {
     fun filtrarAtrasadas() {
         val hoy = System.currentTimeMillis()
         val filtradas = listaCompleta.filter {
-            val fechaVencimiento = it.dueDate * 1000
+            val fechaVencimiento = (it.dueDate ?: 0L) * 1000
             fechaVencimiento < hoy // Ya pasó
         }
         agenda.value = filtradas
@@ -54,7 +54,7 @@ class AgendaViewModel : ViewModel() {
         val manana = hoy + (24 * 60 * 60 * 1000) // Próximas 24 horas
 
         val tareasUrgentes = tareas.filter {
-            val vencimiento = it.dueDate * 1000
+            val vencimiento = (it.dueDate ?: 0L) * 1000
             vencimiento in hoy..manana
         }
 
@@ -129,7 +129,7 @@ class AgendaViewModel : ViewModel() {
             cargando.value = false
 
             // Guardamos la LISTA MAESTRA ordenada
-            listaCompleta = tareas.sortedBy { it.dueDate }
+            listaCompleta = tareas.sortedBy { it.dueDate ?: 0L }
 
             //  Revisamos si hay tareas para notificar (Lógica futura)
             detectarTareasUrgentes(listaCompleta)

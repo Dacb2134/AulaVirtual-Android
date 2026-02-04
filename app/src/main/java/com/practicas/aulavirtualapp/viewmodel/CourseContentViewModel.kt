@@ -17,8 +17,8 @@ class CourseContentViewModel : ViewModel() {
 
     private var lastCourseId: Int? = null
 
-    fun loadCourseContents(token: String, courseId: Int) {
-        if (lastCourseId == courseId && sections.value != null) return
+    fun loadCourseContents(token: String, courseId: Int, forceRefresh: Boolean = false) {
+        if (!forceRefresh && lastCourseId == courseId && sections.value != null) return
         lastCourseId = courseId
 
         repository.getCourseContents(token, courseId).enqueue(object : Callback<List<CourseSection>> {
