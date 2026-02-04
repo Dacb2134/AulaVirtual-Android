@@ -15,6 +15,7 @@
         android:theme="@style/Theme.AulaVirtualApp"
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
+
         <activity
             android:name=".ui.MainActivity"
             android:exported="true">
@@ -28,6 +29,8 @@
         <activity android:name=".ui.CourseDetailActivity" />
         <activity android:name=".ui.SettingsActivity" />
         <activity android:name=".ui.BadgesActivity" />
+
+        <activity android:name=".ui.FilesActivity" />
 
     </application>
 

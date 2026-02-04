@@ -6,7 +6,8 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.practicas.aulavirtualapp.model.Badge
 import com.practicas.aulavirtualapp.model.BadgeResponse
-import com.practicas.aulavirtualapp.model.MoodleFile
+// 👇 IMPORTANTE: Importamos el nuevo modelo de información de archivos
+import com.practicas.aulavirtualapp.network.PrivateFilesInfo
 import com.practicas.aulavirtualapp.model.SiteInfoResponse
 import com.practicas.aulavirtualapp.model.UserDetail
 import com.practicas.aulavirtualapp.repository.AuthRepository
@@ -28,8 +29,9 @@ class ProfileViewModel : ViewModel() {
     private val _badges = MutableLiveData<List<Badge>>()
     val badges: LiveData<List<Badge>> get() = _badges
 
-    private val _files = MutableLiveData<List<MoodleFile>>()
-    val files: LiveData<List<MoodleFile>> get() = _files
+    // 👇 CAMBIO: Ya no es una lista de archivos, ahora es el Resumen (PrivateFilesInfo)
+    private val _fileSummary = MutableLiveData<PrivateFilesInfo>()
+    val fileSummary: LiveData<PrivateFilesInfo> get() = _fileSummary
 
     private val _cargando = MutableLiveData<Boolean>()
     val cargando: LiveData<Boolean> get() = _cargando
@@ -113,6 +115,7 @@ class ProfileViewModel : ViewModel() {
     }
 
     private fun cargarExtras(token: String, userId: Int) {
+        // Cargar Medallas
         repository.getUserBadges(token, userId).enqueue(object : Callback<BadgeResponse> {
             override fun onResponse(call: Call<BadgeResponse>, response: Response<BadgeResponse>) {
                 if (response.isSuccessful) _badges.value = response.body()?.badges ?: emptyList()
@@ -120,12 +123,15 @@ class ProfileViewModel : ViewModel() {
             override fun onFailure(call: Call<BadgeResponse>, t: Throwable) {}
         })
 
-        repository.getUserFiles(token, userId).enqueue(object : Callback<List<MoodleFile>> {
-            override fun onResponse(call: Call<List<MoodleFile>>, response: Response<List<MoodleFile>>) {
-                _cargando.value = false
-                if (response.isSuccessful) _files.value = response.body() ?: emptyList()
+        // 👇 CAMBIO IMPORTANTE: Usamos getFilesInfo (la función nueva)
+        repository.getFilesInfo(token, userId).enqueue(object : Callback<PrivateFilesInfo> {
+            override fun onResponse(call: Call<PrivateFilesInfo>, response: Response<PrivateFilesInfo>) {
+                _cargando.value = false // Terminamos la carga aquí
+                if (response.isSuccessful) {
+                    _fileSummary.value = response.body()
+                }
             }
-            override fun onFailure(call: Call<List<MoodleFile>>, t: Throwable) {
+            override fun onFailure(call: Call<PrivateFilesInfo>, t: Throwable) {
                 _cargando.value = false
             }
         })

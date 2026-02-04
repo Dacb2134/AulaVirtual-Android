@@ -44,7 +44,7 @@ class ProfileFragment : Fragment() {
         val tvEmail = view.findViewById<TextView>(R.id.tvEmail)
         val tvLocation = view.findViewById<TextView>(R.id.tvLocation)
         val ivProfilePic = view.findViewById<ImageView>(R.id.ivProfilePic)
-        val tvRole = view.findViewById<TextView>(R.id.tvRole) // La cinta
+        val tvRole = view.findViewById<TextView>(R.id.tvRole)
 
         // Académico
         val tvInstitution = view.findViewById<TextView>(R.id.tvInstitution)
@@ -61,18 +61,36 @@ class ProfileFragment : Fragment() {
         val pbLoading = view.findViewById<ProgressBar>(R.id.pbLoading)
         val btnOpenWeb = view.findViewById<Button>(R.id.btnOpenWeb)
         val btnSettings = view.findViewById<ImageButton>(R.id.btnSettings)
+
+        // Contenedores clicables
         val containerBadges = view.findViewById<LinearLayout>(R.id.containerBadges)
+        val containerFiles = view.findViewById<LinearLayout>(R.id.containerFiles)
 
         // Datos del Intent
         userToken = requireActivity().intent.getStringExtra("USER_TOKEN") ?: ""
         currentUserId = requireActivity().intent.getIntExtra("USER_ID", 0)
 
+        // 🚨🚨🚨 LÍNEA DE PRUEBA (DEBUG) 🚨🚨🚨
+        // Esto te mostrará el ID en pantalla. Verifica si cambia al cambiar de usuario.
+        Toast.makeText(requireContext(), "DEBUG ID: $currentUserId", Toast.LENGTH_LONG).show()
+
         // --- LISTENERS ---
         ivProfilePic.setOnClickListener { mostrarOpcionesFoto() }
         btnOpenWeb.setOnClickListener { abrirMoodleWeb("/user/edit.php?id=$currentUserId") }
         btnSettings.setOnClickListener { startActivity(Intent(requireContext(), SettingsActivity::class.java)) }
+
+        // Clic en Insignias
         containerBadges.setOnClickListener {
             val intent = Intent(requireContext(), BadgesActivity::class.java)
+            intent.putExtra("USER_TOKEN", userToken)
+            intent.putExtra("USER_ID", currentUserId)
+            startActivity(intent)
+        }
+
+        // Clic en Archivos
+        containerFiles.setOnClickListener {
+            val intent = Intent(requireContext(), FilesActivity::class.java)
+            // Pasamos los datos explícitamente para que FilesActivity los reciba en el Intent
             intent.putExtra("USER_TOKEN", userToken)
             intent.putExtra("USER_ID", currentUserId)
             startActivity(intent)
@@ -81,9 +99,9 @@ class ProfileFragment : Fragment() {
         // --- VIEWMODEL ---
         viewModel = ViewModelProvider(this)[ProfileViewModel::class.java]
 
-        // 1. OBSERVAR ROL (Nueva lógica segura)
+        // 1. OBSERVAR ROL
         viewModel.userRole.observe(viewLifecycleOwner) { rol ->
-            tvRole.text = rol // Se actualiza automáticamente a ADMIN o ESTUDIANTE
+            tvRole.text = rol
         }
 
         // 2. OBSERVAR DATOS DE PERFIL
@@ -91,20 +109,16 @@ class ProfileFragment : Fragment() {
             tvFullname.text = user.fullname
             tvEmail.text = user.email
 
-            // Ubicación
             val parts = listOfNotNull(user.city, user.country).filter { it.isNotEmpty() }
             tvLocation.text = if (parts.isNotEmpty()) parts.joinToString(", ") else "Ubicación no disponible"
 
-            // Académico
             tvInstitution.text = if (!user.institution.isNullOrEmpty()) user.institution else "No registrada"
             tvDepartment.text = if (!user.department.isNullOrEmpty()) user.department else "Estudiante"
 
-            // Contacto (Recuperado)
             val phoneInfo = listOfNotNull(user.phone, user.mobile).filter { it.isNotEmpty() }.joinToString(" / ")
             tvPhone.text = if (phoneInfo.isNotEmpty()) phoneInfo else "No registrado"
             tvAddress.text = if (!user.address.isNullOrEmpty()) user.address else "No registrada"
 
-            // Descripción (Recuperado)
             if (!user.description.isNullOrEmpty()) {
                 val spanned = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                     Html.fromHtml(user.description, Html.FROM_HTML_MODE_COMPACT)
@@ -117,7 +131,7 @@ class ProfileFragment : Fragment() {
                 tvDescription.text = "¡Hola! Soy estudiante en esta plataforma."
             }
 
-            // Imagen
+            // Cargar imagen con Glide + Token
             val imageUrlWithToken = "${user.profileImageUrl}?token=$userToken"
             Glide.with(this)
                 .load(imageUrlWithToken)
@@ -127,12 +141,19 @@ class ProfileFragment : Fragment() {
                 .into(ivProfilePic)
         }
 
-        // 3. EXTRAS
+        // 3. EXTRAS (Insignias)
         viewModel.badges.observe(viewLifecycleOwner) { tvBadgeCount.text = it.size.toString() }
-        viewModel.files.observe(viewLifecycleOwner) { tvFileCount.text = it.size.toString() }
+
+        // 4. ARCHIVOS (Resumen)
+        viewModel.fileSummary.observe(viewLifecycleOwner) { info ->
+            val count = info?.filecount ?: 0
+            tvFileCount.text = count.toString()
+        }
+
+        // Loading spinner
         viewModel.cargando.observe(viewLifecycleOwner) { pbLoading.visibility = if (it) View.VISIBLE else View.GONE }
 
-
+        // Iniciar carga de datos
         if (userToken.isNotEmpty()) {
             viewModel.cargarPerfilCompleto(userToken, currentUserId)
         }

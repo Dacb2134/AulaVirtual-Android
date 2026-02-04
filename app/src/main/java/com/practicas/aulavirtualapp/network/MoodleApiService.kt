@@ -3,7 +3,6 @@ package com.practicas.aulavirtualapp.network
 import com.practicas.aulavirtualapp.model.AssignmentResponse
 import com.practicas.aulavirtualapp.model.BadgeResponse
 import com.practicas.aulavirtualapp.model.Course
-import com.practicas.aulavirtualapp.model.MoodleFile
 import com.practicas.aulavirtualapp.model.SiteInfoResponse
 import com.practicas.aulavirtualapp.model.UserDetail
 import retrofit2.Call
@@ -25,7 +24,6 @@ interface MoodleApiService {
     @POST("webservice/rest/server.php?wsfunction=core_webservice_get_site_info&moodlewsrestformat=json")
     fun getSiteInfo(@Query("wstoken") token: String): Call<SiteInfoResponse>
 
-    // 👇 CORREGIDO: Devuelve una LISTA directa
     @FormUrlEncoded
     @POST("webservice/rest/server.php")
     fun getUserDetails(
@@ -60,11 +58,12 @@ interface MoodleApiService {
         @Query("moodlewsrestformat") format: String = "json"
     ): Call<BadgeResponse>
 
+
     @GET("webservice/rest/server.php")
-    fun getUserFiles(
+    fun getFilesInfo(
         @Query("wstoken") token: String,
         @Query("userid") userId: Int,
-        @Query("wsfunction") function: String = "core_user_get_private_files",
+        @Query("wsfunction") function: String = "core_user_get_private_files_info",
         @Query("moodlewsrestformat") format: String = "json"
-    ): Call<List<MoodleFile>>
+    ): Call<PrivateFilesInfo>
 }
