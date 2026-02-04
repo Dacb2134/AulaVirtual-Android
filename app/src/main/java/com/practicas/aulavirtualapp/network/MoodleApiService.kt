@@ -3,6 +3,7 @@ package com.practicas.aulavirtualapp.network
 import com.practicas.aulavirtualapp.model.AssignmentResponse
 import com.practicas.aulavirtualapp.model.BadgeResponse
 import com.practicas.aulavirtualapp.model.Course
+import com.practicas.aulavirtualapp.model.CourseSection
 import com.practicas.aulavirtualapp.model.SiteInfoResponse
 import com.practicas.aulavirtualapp.model.UserDetail
 import retrofit2.Call
@@ -49,6 +50,14 @@ interface MoodleApiService {
         @Query("wsfunction") function: String = "mod_assign_get_assignments",
         @Query("moodlewsrestformat") format: String = "json"
     ): Call<AssignmentResponse>
+
+    @GET("webservice/rest/server.php")
+    fun getCourseContents(
+        @Query("wstoken") token: String,
+        @Query("courseid") courseId: Int,
+        @Query("wsfunction") function: String = "core_course_get_contents",
+        @Query("moodlewsrestformat") format: String = "json"
+    ): Call<List<CourseSection>>
 
     @GET("webservice/rest/server.php")
     fun getUserBadges(

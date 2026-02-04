@@ -17,7 +17,11 @@ class CourseDetailViewModel : ViewModel() {
     val assignments = MutableLiveData<List<Assignment>>()
     val message = MutableLiveData<String>()
 
+    private var lastCourseId: Int? = null
+
     fun loadAssignments(token: String, courseId: Int) {
+        if (lastCourseId == courseId && assignments.value != null) return
+        lastCourseId = courseId
 
         Log.d("MI_APP", "Pidiendo tareas a Moodle... Token: $token, CourseID: $courseId")
 

@@ -47,6 +47,7 @@ class HomeFragment : Fragment() {
             val nextIntent = Intent(context, CourseDetailActivity::class.java)
             nextIntent.putExtra("COURSE_ID", course.id)
             nextIntent.putExtra("COURSE_NAME", course.fullName)
+            nextIntent.putExtra("COURSE_SHORT_NAME", course.shortName)
             nextIntent.putExtra("COURSE_COLOR", color)
 
             val myToken = requireActivity().intent.getStringExtra("USER_TOKEN")
