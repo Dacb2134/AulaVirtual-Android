@@ -27,9 +27,11 @@ import com.practicas.aulavirtualapp.model.SaveSubmissionResponse
 import com.practicas.aulavirtualapp.network.RetrofitClient
 import com.practicas.aulavirtualapp.repository.AuthRepository
 import com.practicas.aulavirtualapp.utils.AssignmentProgressStore
-import okhttp3.MediaType
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody.Companion.toRequestBody
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -367,12 +369,12 @@ class AssignmentDetailActivity : AppCompatActivity() {
             return
         }
 
-        val textMediaType = MediaType.parse("text/plain")
-        val fileMediaType = MediaType.parse(mimeType) ?: MediaType.parse("application/octet-stream")
-        val tokenBody = RequestBody.create(textMediaType, token)
-        val filePathBody = RequestBody.create(textMediaType, "/")
-        val itemIdBody = RequestBody.create(textMediaType, "0")
-        val fileBody = RequestBody.create(fileMediaType, fileBytes)
+        val textMediaType = "text/plain".toMediaType()
+        val fileMediaType = mimeType.toMediaTypeOrNull() ?: "application/octet-stream".toMediaType()
+        val tokenBody = token.toRequestBody(textMediaType)
+        val filePathBody = "/".toRequestBody(textMediaType)
+        val itemIdBody = "0".toRequestBody(textMediaType)
+        val fileBody = fileBytes.toRequestBody(fileMediaType)
         val filePart = MultipartBody.Part.createFormData("file", fileName, fileBody)
 
         authRepository.uploadAssignmentFile(tokenBody, filePathBody, itemIdBody, filePart)
