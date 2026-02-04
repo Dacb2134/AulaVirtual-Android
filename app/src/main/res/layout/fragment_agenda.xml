@@ -1,106 +1,113 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/swipeRefreshAgenda"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="#F5F5F5">
+    android:layout_height="match_parent">
 
-    <View
-        android:id="@+id/headerAgenda"
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
-        android:layout_height="100dp"
-        android:background="#6200EE"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:layout_height="match_parent"
+        android:background="@color/background">
 
-    <TextView
-        android:id="@+id/tvTitle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="24dp"
-        android:layout_marginBottom="24dp"
-        android:text="Agenda Global 📅"
-        android:textColor="#FFFFFF"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        app:layout_constraintBottom_toBottomOf="@id/headerAgenda"
-        app:layout_constraintStart_toStartOf="parent" />
+        <View
+            android:id="@+id/headerAgenda"
+            android:layout_width="match_parent"
+            android:layout_height="100dp"
+            android:background="@color/secondary"
+            app:layout_constraintTop_toTopOf="parent" />
 
-    <HorizontalScrollView
-        android:id="@+id/scrollChips"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
-        android:scrollbars="none"
-        android:clipToPadding="false"
-        app:layout_constraintTop_toBottomOf="@id/headerAgenda">
-
-        <com.google.android.material.chip.ChipGroup
-            android:id="@+id/chipGroupFilters"
+        <TextView
+            android:id="@+id/tvTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            app:singleSelection="true"
-            app:selectionRequired="true">
+            android:layout_marginStart="24dp"
+            android:layout_marginBottom="24dp"
+            android:text="Agenda Global 📅"
+            android:textColor="#FFFFFF"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            app:layout_constraintBottom_toBottomOf="@id/headerAgenda"
+            app:layout_constraintStart_toStartOf="parent" />
 
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chipAll"
-                style="@style/Widget.MaterialComponents.Chip.Choice"
+        <HorizontalScrollView
+            android:id="@+id/scrollChips"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:scrollbars="none"
+            android:clipToPadding="false"
+            app:layout_constraintTop_toBottomOf="@id/headerAgenda">
+
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/chipGroupFilters"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:checked="true"
-                android:text="Todas"
-                android:textColor="@color/black"/>
+                app:singleSelection="true"
+                app:selectionRequired="true">
 
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chipNext7Days"
-                style="@style/Widget.MaterialComponents.Chip.Choice"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Próximos 7 días"
-                android:textColor="@color/black"/>
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipAll"
+                    style="@style/Widget.MaterialComponents.Chip.Choice"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="true"
+                    android:text="Todas"
+                    android:textColor="@color/black"/>
 
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chipOverdue"
-                style="@style/Widget.MaterialComponents.Chip.Choice"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="⚠ Atrasadas"
-                android:textColor="@color/black"
-                app:chipBackgroundColor="@android:color/holo_red_light" />
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipNext7Days"
+                    style="@style/Widget.MaterialComponents.Chip.Choice"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Próximos 7 días"
+                    android:textColor="@color/black"/>
 
-        </com.google.android.material.chip.ChipGroup>
-    </HorizontalScrollView>
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipOverdue"
+                    style="@style/Widget.MaterialComponents.Chip.Choice"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="⚠ Atrasadas"
+                    android:textColor="@color/black"
+                    app:chipBackgroundColor="@android:color/holo_red_light" />
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rvAgenda"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_marginTop="8dp"
-        android:clipToPadding="false"
-        android:paddingBottom="80dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/scrollChips" />
+            </com.google.android.material.chip.ChipGroup>
+        </HorizontalScrollView>
 
-    <ProgressBar
-        android:id="@+id/pbLoadingAgenda"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvAgenda"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginTop="8dp"
+            android:clipToPadding="false"
+            android:paddingBottom="80dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/scrollChips" />
 
-    <TextView
-        android:id="@+id/tvEmptyAgenda"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="No hay tareas con este filtro."
-        android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        <ProgressBar
+            android:id="@+id/pbLoadingAgenda"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:indeterminateDrawable="@drawable/custom_loader_fox"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+        <TextView
+            android:id="@+id/tvEmptyAgenda"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="No hay tareas con este filtro."
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.swiperefreshlayout.widget.SwipeRefreshLayout>

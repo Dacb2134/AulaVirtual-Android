@@ -22,40 +22,46 @@ class CourseDetailActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_course_detail)
 
-        // Recibir datos
+        // 1. Recibir datos del Intent
         val courseName = intent.getStringExtra("COURSE_NAME") ?: "Curso"
         val courseId = intent.getIntExtra("COURSE_ID", 0)
         val courseColor = intent.getIntExtra("COURSE_COLOR", 0)
-        val token = intent.getStringExtra("USER_TOKEN") // <--- Importante
+        val token = intent.getStringExtra("USER_TOKEN")
 
-        // Configurar diseño visual
+        // 2. Referencias a la Vista
         val tvTitle = findViewById<TextView>(R.id.tvCourseTitle)
         val header = findViewById<View>(R.id.viewHeader)
-        val pbLoading = findViewById<ProgressBar>(R.id.pbLoading)
+        val pbLoading = findViewById<ProgressBar>(R.id.pbLoading) // Aquí vive tu Zorro
         val rvAssignments = findViewById<RecyclerView>(R.id.rvAssignments)
 
+        // 3. Configurar Diseño (Color y Título)
         tvTitle.text = courseName
         if (courseColor != 0) header.setBackgroundColor(courseColor)
 
-        // Configurar la Lista (RecyclerView)
+        // 4. Configurar la Lista (RecyclerView)
         rvAssignments.layoutManager = LinearLayoutManager(this)
         adapter = AssignmentAdapter()
         rvAssignments.adapter = adapter
 
-        //  Conectar con el ViewModel
+        // 5. Conectar con el ViewModel
         viewModel = ViewModelProvider(this)[CourseDetailViewModel::class.java]
 
-        // Si tenemos token y ID, pedimos las tareas
+        // 6. Lógica de Carga (AQUÍ ESTÁ EL CAMBIO DEL ZORRO)
         if (token != null && courseId != 0) {
+            // Mostramos el Zorro
             pbLoading.visibility = View.VISIBLE
+            // Ocultamos la lista para que el Zorro se vea limpio en el centro
+            rvAssignments.visibility = View.GONE
+
             viewModel.loadAssignments(token, courseId)
         } else {
             Toast.makeText(this, "Error: Datos del curso incompletos", Toast.LENGTH_SHORT).show()
         }
 
-        // 5. Observar respuestas
+        // 7. Observar respuestas
         viewModel.assignments.observe(this) { listaTareas ->
             pbLoading.visibility = View.GONE
+            rvAssignments.visibility = View.VISIBLE
             adapter.updateData(listaTareas)
         }
 
