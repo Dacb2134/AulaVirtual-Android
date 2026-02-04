@@ -40,14 +40,13 @@ class CourseSectionAdapter(
         }
 
         holder.tvSectionTitle.text = title
-        val visibleModules = section.modules.filter { (it.visible ?: 1) == 1 }
-        holder.tvSectionCount.text = "${visibleModules.size} actividades"
+        holder.tvSectionCount.text = "${section.modules.size} actividades"
 
         val summaryText = section.summary?.takeIf { it.isNotBlank() } ?: "Sin descripción"
         holder.tvSectionSummary.text = Html.fromHtml(summaryText, Html.FROM_HTML_MODE_LEGACY)
 
         holder.modulesContainer.removeAllViews()
-        visibleModules.forEach { module ->
+        section.modules.forEach { module ->
             holder.modulesContainer.addView(buildModuleView(holder.modulesContainer, module))
         }
     }
