@@ -185,21 +185,13 @@
                         android:textStyle="bold" />
 
                     <TextView
+                        android:id="@+id/tvAssignmentDeliveryHint"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="6dp"
                         android:text="Sube archivos o entrega texto según lo que pida el docente."
                         android:textColor="@color/text_secondary"
                         android:textSize="12sp" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnAssignmentRequestAccess"
-                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:text="Permitir acceso a archivos"
-                        app:cornerRadius="12dp" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnAssignmentAttachFile"
@@ -218,7 +210,17 @@
                         android:textColor="@color/text_secondary"
                         android:textSize="12sp" />
 
+                    <TextView
+                        android:id="@+id/tvAssignmentAllowedFormats"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="Formatos permitidos: Sin restricción"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12sp" />
+
                     <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/tilAssignmentText"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"

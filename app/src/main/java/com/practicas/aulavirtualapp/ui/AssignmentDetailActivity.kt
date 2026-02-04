@@ -8,6 +8,8 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.OpenableColumns
+import android.view.View
+import android.webkit.MimeTypeMap
 import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
@@ -16,8 +18,10 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.text.HtmlCompat
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
+import com.google.android.material.textfield.TextInputLayout
 import com.practicas.aulavirtualapp.R
 import com.practicas.aulavirtualapp.model.Assignment
+import com.practicas.aulavirtualapp.model.AssignmentConfig
 import com.practicas.aulavirtualapp.network.RetrofitClient
 import com.practicas.aulavirtualapp.utils.AssignmentProgressStore
 import java.text.SimpleDateFormat
@@ -29,6 +33,9 @@ class AssignmentDetailActivity : AppCompatActivity() {
     private val dateTimeFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale("es", "ES"))
     private var selectedFileUri: Uri? = null
     private var assignmentId: Int = 0
+    private var allowFileSubmission: Boolean = true
+    private var allowTextSubmission: Boolean = true
+    private var fileExtensions: String = ""
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -64,11 +71,13 @@ class AssignmentDetailActivity : AppCompatActivity() {
         val tvAttempts = findViewById<TextView>(R.id.tvAssignmentAttempts)
         val tvDescription = findViewById<TextView>(R.id.tvAssignmentDescription)
         val btnOpenMoodle = findViewById<android.view.View>(R.id.btnAssignmentOpenMoodle)
-        val btnRequestAccess = findViewById<MaterialButton>(R.id.btnAssignmentRequestAccess)
         val btnAttachFile = findViewById<MaterialButton>(R.id.btnAssignmentAttachFile)
         val btnSubmit = findViewById<MaterialButton>(R.id.btnAssignmentSubmit)
         val btnMarkComplete = findViewById<MaterialButton>(R.id.btnAssignmentMarkComplete)
         val etText = findViewById<TextInputEditText>(R.id.etAssignmentText)
+        val tilText = findViewById<TextInputLayout>(R.id.tilAssignmentText)
+        val tvDeliveryHint = findViewById<TextView>(R.id.tvAssignmentDeliveryHint)
+        val tvAllowedFormats = findViewById<TextView>(R.id.tvAssignmentAllowedFormats)
 
         val title = intent.getStringExtra(EXTRA_ASSIGNMENT_TITLE).orEmpty()
         val description = intent.getStringExtra(EXTRA_ASSIGNMENT_DESCRIPTION).orEmpty()
@@ -81,6 +90,9 @@ class AssignmentDetailActivity : AppCompatActivity() {
         val maxAttempts = intent.getIntExtra(EXTRA_ASSIGNMENT_MAX_ATTEMPTS, 0)
         val courseModuleId = intent.getIntExtra(EXTRA_ASSIGNMENT_COURSE_MODULE_ID, 0)
         assignmentId = intent.getIntExtra(EXTRA_ASSIGNMENT_ID, 0)
+        allowFileSubmission = intent.getBooleanExtra(EXTRA_ASSIGNMENT_ALLOW_FILES, true)
+        allowTextSubmission = intent.getBooleanExtra(EXTRA_ASSIGNMENT_ALLOW_TEXT, true)
+        fileExtensions = intent.getStringExtra(EXTRA_ASSIGNMENT_FILE_EXTENSIONS).orEmpty()
 
         if (courseColor != 0) {
             header.setBackgroundColor(courseColor)
@@ -112,17 +124,39 @@ class AssignmentDetailActivity : AppCompatActivity() {
             startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
         }
 
-        btnRequestAccess.setOnClickListener { requestFilePermission() }
+        configureSubmissionUi(
+            allowFileSubmission,
+            allowTextSubmission,
+            fileExtensions,
+            btnAttachFile,
+            tvAllowedFormats,
+            tvDeliveryHint,
+            tilText
+        )
         btnAttachFile.setOnClickListener { requestFilePermission() }
 
         btnSubmit.setOnClickListener {
             val hasText = !etText.text.isNullOrBlank()
             val hasFile = selectedFileUri != null
+            if (!allowTextSubmission && hasText) {
+                Toast.makeText(this, "Esta tarea no permite entrega en texto.", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            if (!allowFileSubmission && hasFile) {
+                Toast.makeText(this, "Esta tarea no permite adjuntar archivos.", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
             if (!hasText && !hasFile) {
                 Toast.makeText(this, "Agrega texto o un archivo para continuar.", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            Toast.makeText(this, "Entrega preparada. Revisa Moodle para enviarla.", Toast.LENGTH_LONG).show()
+            AssignmentProgressStore.setCompleted(this, assignmentId, true)
+            updateCompleteButton(btnMarkComplete)
+            Toast.makeText(
+                this,
+                "Entrega registrada en la app. Si necesitas confirmación oficial, revisa Moodle.",
+                Toast.LENGTH_LONG
+            ).show()
         }
 
         updateCompleteButton(btnMarkComplete)
@@ -148,7 +182,8 @@ class AssignmentDetailActivity : AppCompatActivity() {
     }
 
     private fun openFilePicker() {
-        pickFileLauncher.launch(arrayOf("*/*"))
+        val mimeTypes = resolveAllowedMimeTypes(fileExtensions)
+        pickFileLauncher.launch(mimeTypes)
     }
 
     private fun fileName(uri: Uri): String {
@@ -213,6 +248,59 @@ class AssignmentDetailActivity : AppCompatActivity() {
         }
     }
 
+    private fun configureSubmissionUi(
+        allowFiles: Boolean,
+        allowText: Boolean,
+        extensions: String,
+        btnAttachFile: MaterialButton,
+        tvAllowedFormats: TextView,
+        tvDeliveryHint: TextView,
+        tilText: TextInputLayout
+    ) {
+        if (!allowFiles) {
+            btnAttachFile.visibility = View.GONE
+            tvAllowedFormats.visibility = View.GONE
+            findViewById<TextView>(R.id.tvAssignmentSelectedFile).visibility = View.GONE
+        } else {
+            tvAllowedFormats.text = buildAllowedFormatsLabel(extensions)
+        }
+
+        tilText.visibility = if (allowText) View.VISIBLE else View.GONE
+
+        tvDeliveryHint.text = when {
+            allowFiles && allowText -> "Entrega archivos o texto según el formato solicitado."
+            allowFiles -> "Entrega únicamente archivos."
+            allowText -> "Entrega únicamente texto."
+            else -> "Esta tarea no admite entregas en la app."
+        }
+    }
+
+    private fun buildAllowedFormatsLabel(extensions: String): String {
+        val cleaned = extensions.split(",")
+            .map { it.trim().trimStart('.') }
+            .filter { it.isNotBlank() }
+            .map { it.uppercase(Locale.getDefault()) }
+
+        return if (cleaned.isEmpty()) {
+            "Formatos permitidos: Sin restricción"
+        } else {
+            "Formatos permitidos: ${cleaned.joinToString(", ")}"
+        }
+    }
+
+    private fun resolveAllowedMimeTypes(extensions: String): Array<String> {
+        val cleaned = extensions.split(",")
+            .map { it.trim().trimStart('.').lowercase(Locale.getDefault()) }
+            .filter { it.isNotBlank() }
+        if (cleaned.isEmpty()) {
+            return arrayOf("*/*")
+        }
+        val mimeTypes = cleaned.mapNotNull { ext ->
+            MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext)
+        }.distinct()
+        return if (mimeTypes.isEmpty()) arrayOf("*/*") else mimeTypes.toTypedArray()
+    }
+
     companion object {
         private const val EXTRA_ASSIGNMENT_TITLE = "extra_assignment_title"
         private const val EXTRA_ASSIGNMENT_DESCRIPTION = "extra_assignment_description"
@@ -225,6 +313,9 @@ class AssignmentDetailActivity : AppCompatActivity() {
         private const val EXTRA_ASSIGNMENT_MAX_ATTEMPTS = "extra_assignment_max_attempts"
         private const val EXTRA_ASSIGNMENT_COURSE_MODULE_ID = "extra_assignment_course_module_id"
         private const val EXTRA_ASSIGNMENT_ID = "extra_assignment_id"
+        private const val EXTRA_ASSIGNMENT_ALLOW_FILES = "extra_assignment_allow_files"
+        private const val EXTRA_ASSIGNMENT_ALLOW_TEXT = "extra_assignment_allow_text"
+        private const val EXTRA_ASSIGNMENT_FILE_EXTENSIONS = "extra_assignment_file_extensions"
 
         fun createIntent(
             context: Context,
@@ -255,7 +346,44 @@ class AssignmentDetailActivity : AppCompatActivity() {
             intent.putExtra(EXTRA_ASSIGNMENT_MAX_ATTEMPTS, assignment.maxAttempts ?: 0)
             intent.putExtra(EXTRA_ASSIGNMENT_COURSE_MODULE_ID, assignment.courseModuleId ?: 0)
             intent.putExtra(EXTRA_ASSIGNMENT_ID, assignment.id)
+            val submissionInfo = buildSubmissionInfo(assignment)
+            intent.putExtra(EXTRA_ASSIGNMENT_ALLOW_FILES, submissionInfo.allowFiles)
+            intent.putExtra(EXTRA_ASSIGNMENT_ALLOW_TEXT, submissionInfo.allowText)
+            intent.putExtra(EXTRA_ASSIGNMENT_FILE_EXTENSIONS, submissionInfo.fileExtensions)
             return intent
+        }
+
+        private data class SubmissionInfo(
+            val allowFiles: Boolean,
+            val allowText: Boolean,
+            val fileExtensions: String
+        )
+
+        private fun buildSubmissionInfo(assignment: Assignment): SubmissionInfo {
+            if (assignment.configs.isEmpty()) {
+                return SubmissionInfo(true, true, "")
+            }
+
+            val allowFiles = isSubmissionEnabled(assignment.configs, "file")
+            val allowText = isSubmissionEnabled(assignment.configs, "onlinetext")
+            val fileExtensions = assignment.configs.firstOrNull {
+                it.subtype == "assignsubmission" &&
+                    it.plugin == "file" &&
+                    it.name == "fileextensions"
+            }?.value.orEmpty()
+
+            return SubmissionInfo(allowFiles, allowText, fileExtensions)
+        }
+
+        private fun isSubmissionEnabled(configs: List<AssignmentConfig>, plugin: String): Boolean {
+            val pluginConfigs = configs.filter {
+                it.subtype == "assignsubmission" && it.plugin == plugin
+            }
+            if (pluginConfigs.isEmpty()) {
+                return true
+            }
+            val enabledValue = pluginConfigs.firstOrNull { it.name == "enabled" }?.value
+            return enabledValue?.trim() != "0"
         }
     }
 }

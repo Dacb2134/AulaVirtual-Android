@@ -14,6 +14,8 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.practicas.aulavirtualapp.R
 import com.practicas.aulavirtualapp.adapter.CourseGradeAdapter
+import com.practicas.aulavirtualapp.model.CourseGradeRow
+import com.practicas.aulavirtualapp.model.GradeItem
 import com.practicas.aulavirtualapp.utils.setupBrandColors
 import com.practicas.aulavirtualapp.viewmodel.CourseGradesViewModel
 
@@ -71,7 +73,7 @@ class CourseGradesFragment : Fragment() {
                 adapter.updateData(emptyList())
             } else {
                 tvEmpty.visibility = View.GONE
-                adapter.updateData(grades)
+                adapter.updateData(buildGradeRows(grades))
             }
             swipeRefresh.isRefreshing = false
         }
@@ -81,5 +83,25 @@ class CourseGradesFragment : Fragment() {
             swipeRefresh.isRefreshing = false
             context?.let { Toast.makeText(it, message, Toast.LENGTH_LONG).show() }
         }
+    }
+
+    private fun buildGradeRows(grades: List<GradeItem>): List<CourseGradeRow> {
+        val rows = mutableListOf<CourseGradeRow>()
+        var currentCategory: String? = null
+        grades.forEach { grade ->
+            when (grade.itemType?.lowercase()) {
+                "category" -> {
+                    currentCategory = grade.itemName ?: "Categoría"
+                    rows.add(CourseGradeRow.Category(grade))
+                }
+                "course" -> {
+                    rows.add(CourseGradeRow.Item(grade, "Total del curso"))
+                }
+                else -> {
+                    rows.add(CourseGradeRow.Item(grade, currentCategory))
+                }
+            }
+        }
+        return rows
     }
 }
