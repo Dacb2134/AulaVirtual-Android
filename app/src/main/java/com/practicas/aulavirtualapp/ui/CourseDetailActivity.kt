@@ -1,22 +1,18 @@
 package com.practicas.aulavirtualapp.ui
 
 import android.os.Bundle
-import android.view.View
-import android.widget.ProgressBar
+import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.ViewModelProvider
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
+import androidx.core.os.bundleOf
+import androidx.fragment.app.Fragment
+import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.practicas.aulavirtualapp.R
-import com.practicas.aulavirtualapp.adapter.AssignmentAdapter
-import com.practicas.aulavirtualapp.viewmodel.CourseDetailViewModel
 
 class CourseDetailActivity : AppCompatActivity() {
 
-    private lateinit var viewModel: CourseDetailViewModel
-    private lateinit var adapter: AssignmentAdapter
+    private lateinit var courseArgs: Bundle
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -24,50 +20,56 @@ class CourseDetailActivity : AppCompatActivity() {
 
         // 1. Recibir datos del Intent
         val courseName = intent.getStringExtra("COURSE_NAME") ?: "Curso"
+        val courseShortName = intent.getStringExtra("COURSE_SHORT_NAME") ?: ""
         val courseId = intent.getIntExtra("COURSE_ID", 0)
         val courseColor = intent.getIntExtra("COURSE_COLOR", 0)
         val token = intent.getStringExtra("USER_TOKEN")
 
-        // 2. Referencias a la Vista
-        val tvTitle = findViewById<TextView>(R.id.tvCourseTitle)
-        val header = findViewById<View>(R.id.viewHeader)
-        val pbLoading = findViewById<ProgressBar>(R.id.pbLoading) // Aquí vive tu Zorro
-        val rvAssignments = findViewById<RecyclerView>(R.id.rvAssignments)
+        if (token.isNullOrBlank() || courseId == 0) {
+            Toast.makeText(this, "Error: Datos del curso incompletos", Toast.LENGTH_SHORT).show()
+            finish()
+            return
+        }
 
-        // 3. Configurar Diseño (Color y Título)
+        courseArgs = bundleOf(
+            "COURSE_ID" to courseId,
+            "COURSE_NAME" to courseName,
+            "COURSE_SHORT_NAME" to courseShortName,
+            "COURSE_COLOR" to courseColor,
+            "USER_TOKEN" to token
+        )
+
+        val header = findViewById<android.view.View>(R.id.viewHeader)
+        val tvTitle = findViewById<TextView>(R.id.tvCourseTitle)
+        val tvSubtitle = findViewById<TextView>(R.id.tvCourseSubtitle)
+        val btnBack = findViewById<ImageButton>(R.id.btnCourseBack)
+        val bottomNav = findViewById<BottomNavigationView>(R.id.bottomNavigationCourse)
+
         tvTitle.text = courseName
+        tvSubtitle.text = if (courseShortName.isNotBlank()) courseShortName else "Curso activo"
         if (courseColor != 0) header.setBackgroundColor(courseColor)
 
-        // 4. Configurar la Lista (RecyclerView)
-        rvAssignments.layoutManager = LinearLayoutManager(this)
-        adapter = AssignmentAdapter()
-        rvAssignments.adapter = adapter
+        btnBack.setOnClickListener { finish() }
 
-        // 5. Conectar con el ViewModel
-        viewModel = ViewModelProvider(this)[CourseDetailViewModel::class.java]
-
-        // 6. Lógica de Carga (AQUÍ ESTÁ EL CAMBIO DEL ZORRO)
-        if (token != null && courseId != 0) {
-            // Mostramos el Zorro
-            pbLoading.visibility = View.VISIBLE
-            // Ocultamos la lista para que el Zorro se vea limpio en el centro
-            rvAssignments.visibility = View.GONE
-
-            viewModel.loadAssignments(token, courseId)
-        } else {
-            Toast.makeText(this, "Error: Datos del curso incompletos", Toast.LENGTH_SHORT).show()
+        if (savedInstanceState == null) {
+            cambiarFragmento(CourseOverviewFragment())
+            bottomNav.selectedItemId = R.id.nav_course_overview
         }
 
-        // 7. Observar respuestas
-        viewModel.assignments.observe(this) { listaTareas ->
-            pbLoading.visibility = View.GONE
-            rvAssignments.visibility = View.VISIBLE
-            adapter.updateData(listaTareas)
+        bottomNav.setOnItemSelectedListener { item ->
+            when (item.itemId) {
+                R.id.nav_course_overview -> cambiarFragmento(CourseOverviewFragment())
+                R.id.nav_course_content -> cambiarFragmento(CourseContentFragment())
+                R.id.nav_course_assignments -> cambiarFragmento(CourseAssignmentsFragment())
+            }
+            true
         }
+    }
 
-        viewModel.message.observe(this) { texto ->
-            pbLoading.visibility = View.GONE
-            Toast.makeText(this, texto, Toast.LENGTH_LONG).show()
-        }
+    private fun cambiarFragmento(fragment: Fragment) {
+        fragment.arguments = Bundle(courseArgs)
+        supportFragmentManager.beginTransaction()
+            .replace(R.id.course_nav_host, fragment)
+            .commit()
     }
 }
