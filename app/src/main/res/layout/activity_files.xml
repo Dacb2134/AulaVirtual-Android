@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background">
+
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbarFiles"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="@color/secondary"
+        android:elevation="4dp"
+        app:titleTextColor="@color/on_secondary"
+        app:navigationIcon="@drawable/abc_ic_ab_back_material"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Mis Archivos"
+            android:textColor="@color/on_secondary"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+    </androidx.appcompat.widget.Toolbar>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="32dp"
+        app:layout_constraintTop_toBottomOf="@id/toolbarFiles"
+        app:layout_constraintBottom_toBottomOf="parent">
+
+        <ImageView
+            android:id="@+id/ivFolderIcon"
+            android:layout_width="120dp"
+            android:layout_height="120dp"
+            android:src="@drawable/ic_launcher_foreground"
+            android:contentDescription="Icono carpeta"
+            app:tint="@color/primary" />
+        <TextView
+            android:id="@+id/tvFileSummary"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Cargando información..."
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:textAlignment="center"
+            android:textColor="@color/text_primary"
+            android:layout_marginTop="24dp"/>
+
+        <TextView
+            android:id="@+id/tvFileDetail"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Conecta con tu servidor para ver el estado."
+            android:textAlignment="center"
+            android:textSize="16sp"
+            android:textColor="@color/text_secondary"
+            android:layout_marginTop="8dp"/>
+
+        <Button
+            android:id="@+id/btnOpenWeb"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:text="Gestionar en Moodle Web"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:layout_marginTop="40dp"
+            app:cornerRadius="12dp"
+            android:backgroundTint="@color/primary"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Se abrirá el navegador para subir o borrar archivos."
+            android:textSize="12sp"
+            android:textColor="#9E9E9E"
+            android:layout_marginTop="12dp"/>
+
+    </LinearLayout>
+
+    <ProgressBar
+        android:id="@+id/pbLoadingFiles"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="visible"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/toolbarFiles" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

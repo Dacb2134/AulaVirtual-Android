@@ -7,6 +7,7 @@ import com.practicas.aulavirtualapp.model.Course
 import com.practicas.aulavirtualapp.model.MoodleFile
 import com.practicas.aulavirtualapp.model.SiteInfoResponse
 import com.practicas.aulavirtualapp.model.UserDetail
+import com.practicas.aulavirtualapp.network.PrivateFilesInfo
 import com.practicas.aulavirtualapp.network.RetrofitClient
 import com.practicas.aulavirtualapp.network.TokenResponse
 import retrofit2.Call
@@ -38,5 +39,6 @@ class AuthRepository {
     // --- Extras ---
     fun getUserBadges(token: String, userId: Int): Call<BadgeResponse> = apiService.getUserBadges(token, userId)
 
-    fun getUserFiles(token: String, userId: Int): Call<List<MoodleFile>> = apiService.getUserFiles(token, userId)
-}
+    fun getFilesInfo(token: String, userId: Int): Call<PrivateFilesInfo> {
+        return apiService.getFilesInfo(token, userId)
+}}
