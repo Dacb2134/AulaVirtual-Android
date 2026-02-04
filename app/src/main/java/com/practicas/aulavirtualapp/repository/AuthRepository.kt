@@ -4,6 +4,9 @@ import android.util.Log
 import com.practicas.aulavirtualapp.model.AssignmentResponse
 import com.practicas.aulavirtualapp.model.BadgeResponse
 import com.practicas.aulavirtualapp.model.Course
+import com.practicas.aulavirtualapp.model.CourseSection
+import com.practicas.aulavirtualapp.model.EnrolledUser
+import com.practicas.aulavirtualapp.model.GradeReportResponse
 import com.practicas.aulavirtualapp.model.MoodleFile
 import com.practicas.aulavirtualapp.model.SiteInfoResponse
 import com.practicas.aulavirtualapp.model.UserDetail
@@ -28,6 +31,15 @@ class AuthRepository {
 
     // ⚠️ IMPORTANTE: Mantenemos el nombre 'getAssignments' para no romper tu AgendaViewModel
     fun getAssignments(token: String, courseId: Int): Call<AssignmentResponse> = apiService.getCourseAssignments(token, courseId)
+
+    fun getCourseContents(token: String, courseId: Int): Call<List<CourseSection>> =
+        apiService.getCourseContents(token, courseId)
+
+    fun getEnrolledUsers(token: String, courseId: Int): Call<List<EnrolledUser>> =
+        apiService.getEnrolledUsers(token, courseId)
+
+    fun getGradeReport(token: String, courseId: Int, userId: Int): Call<GradeReportResponse> =
+        apiService.getGradeReport(token, courseId, userId)
 
     // --- Perfil de Usuario (LA ACTUALIZACIÓN) ---
     // 👇 AHORA devuelve Call<List<UserDetail>> para coincidir con el JSON [...] de Moodle
