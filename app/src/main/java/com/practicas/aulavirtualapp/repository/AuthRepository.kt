@@ -23,7 +23,7 @@ class AuthRepository {
     fun getSiteInfo(token: String): Call<SiteInfoResponse> = apiService.getSiteInfo(token)
 
     // --- Cursos y Tareas (Agenda) ---
-    // Mantenemos getUserCourses igual
+
     fun getUserCourses(token: String, userId: Int): Call<List<Course>> = apiService.getUserCourses(token, userId)
 
     // ⚠️ IMPORTANTE: Mantenemos el nombre 'getAssignments' para no romper tu AgendaViewModel
