@@ -10,7 +10,9 @@ import com.practicas.aulavirtualapp.model.BadgeResponse
 import com.practicas.aulavirtualapp.network.PrivateFilesInfo
 import com.practicas.aulavirtualapp.model.SiteInfoResponse
 import com.practicas.aulavirtualapp.model.UserDetail
+import com.practicas.aulavirtualapp.model.UserRole
 import com.practicas.aulavirtualapp.repository.AuthRepository
+import com.practicas.aulavirtualapp.utils.UserRoleResolver
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -38,6 +40,7 @@ class ProfileViewModel : ViewModel() {
 
     // Variable temporal para guardar si es admin mientras carga el resto del perfil
     private var isSiteAdmin = false
+    private var latestSiteInfo: SiteInfoResponse? = null
 
     fun cargarPerfilCompleto(token: String, userId: Int) {
         _cargando.value = true
@@ -46,7 +49,8 @@ class ProfileViewModel : ViewModel() {
         repository.getSiteInfo(token).enqueue(object : Callback<SiteInfoResponse> {
             override fun onResponse(call: Call<SiteInfoResponse>, response: Response<SiteInfoResponse>) {
                 if (response.isSuccessful && response.body() != null) {
-                    isSiteAdmin = response.body()!!.isSiteAdmin
+                    latestSiteInfo = response.body()
+                    isSiteAdmin = latestSiteInfo?.isSiteAdmin == true
 
                     if (isSiteAdmin) {
                         _userRole.value = "ADMIN"
@@ -70,8 +74,8 @@ class ProfileViewModel : ViewModel() {
                         _userDetail.value = user // Actualizamos la UI con los datos
 
                         // Si NO es Admin global, verificamos si es Docente
-                        if (!isSiteAdmin) {
-                            procesarRoles(user)
+                        latestSiteInfo?.let { siteInfo ->
+                            procesarRoles(siteInfo, user)
                         }
                     } else {
                         Log.e("Profile", "La lista de usuarios llegó vacía")
@@ -91,26 +95,12 @@ class ProfileViewModel : ViewModel() {
     }
 
     // Lógica inteligente: Combina Roles de API + Atributo de Departamento
-    private fun procesarRoles(user: UserDetail) {
-        val roles = user.roles ?: emptyList()
-
-        // A. Buscamos por ROL TÉCNICO
-        val tieneRolDocente = roles.any { rol ->
-            rol.shortName == "editingteacher" ||
-                    rol.shortName == "teacher" ||
-                    rol.shortName == "coursecreator" ||
-                    rol.shortName == "manager"
-        }
-
-        // B. Buscamos por DEPARTAMENTO (Tu "Plan B" seguro)
-        // Detecta si pusiste "Docente" en el campo departamento de Moodle
-        val esDepartamentoDocente = user.department?.contains("Docente", ignoreCase = true) == true
-
-        // --- DECISIÓN FINAL ---
-        if (tieneRolDocente || esDepartamentoDocente) {
-            _userRole.value = "DOCENTE"
-        } else {
-            _userRole.value = "ESTUDIANTE"
+    private fun procesarRoles(siteInfo: SiteInfoResponse, user: UserDetail) {
+        val role = UserRoleResolver.resolve(siteInfo, user)
+        _userRole.value = when (role) {
+            UserRole.ADMIN -> "ADMIN"
+            UserRole.DOCENTE -> "DOCENTE"
+            UserRole.ESTUDIANTE -> "ESTUDIANTE"
         }
     }
 

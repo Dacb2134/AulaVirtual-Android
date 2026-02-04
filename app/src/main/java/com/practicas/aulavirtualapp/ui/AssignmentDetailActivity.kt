@@ -162,6 +162,17 @@ class AssignmentDetailActivity : AppCompatActivity() {
                 Toast.makeText(this, "Agrega texto o un archivo para continuar.", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
+            if (hasFile && selectedFileUri != null) {
+                val localFileName = fileName(selectedFileUri!!)
+                if (!isFileExtensionAllowed(localFileName, fileExtensions)) {
+                    Toast.makeText(
+                        this,
+                        "El archivo no cumple con los formatos permitidos: ${buildAllowedFormatsLabel(fileExtensions)}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    return@setOnClickListener
+                }
+            }
             if (userToken.isBlank()) {
                 Toast.makeText(this, "No se encontró el token de Moodle.", Toast.LENGTH_LONG).show()
                 return@setOnClickListener
@@ -329,6 +340,17 @@ class AssignmentDetailActivity : AppCompatActivity() {
         return if (mimeTypes.isEmpty()) arrayOf("*/*") else mimeTypes.toTypedArray()
     }
 
+    private fun isFileExtensionAllowed(fileName: String, extensions: String): Boolean {
+        val allowed = extensions.split(",")
+            .map { it.trim().trimStart('.').lowercase(Locale.getDefault()) }
+            .filter { it.isNotBlank() }
+        if (allowed.isEmpty()) {
+            return true
+        }
+        val fileExtension = fileName.substringAfterLast('.', "").lowercase(Locale.getDefault())
+        return fileExtension.isNotBlank() && allowed.contains(fileExtension)
+    }
+
     private fun submitWithFile(
         token: String,
         assignmentId: Int,
@@ -423,6 +445,14 @@ class AssignmentDetailActivity : AppCompatActivity() {
                     }
                     val body = response.body()
                     val warnings = body?.warnings?.joinToString(" · ") { it.message.orEmpty() }
+                    if (body?.status != true) {
+                        Toast.makeText(
+                            this@AssignmentDetailActivity,
+                            "La entrega no pudo registrarse en Moodle.",
+                            Toast.LENGTH_LONG
+                        ).show()
+                        return
+                    }
                     if (!warnings.isNullOrBlank()) {
                         Toast.makeText(
                             this@AssignmentDetailActivity,
