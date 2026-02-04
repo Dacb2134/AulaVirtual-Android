@@ -5,12 +5,11 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 object RetrofitClient {
 
-
-    private const val BASE_URL = "http://192.168.1.144/"
+    const val baseUrl: String = "http://192.168.1.144/"
 
     val instance: MoodleApiService by lazy {
         val retrofit = Retrofit.Builder()
-            .baseUrl(BASE_URL)
+            .baseUrl(baseUrl)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
 

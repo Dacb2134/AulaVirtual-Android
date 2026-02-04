@@ -11,8 +11,10 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.practicas.aulavirtualapp.R
 import com.practicas.aulavirtualapp.adapter.CourseSectionAdapter
+import com.practicas.aulavirtualapp.utils.setupBrandColors
 import com.practicas.aulavirtualapp.viewmodel.CourseContentViewModel
 
 class CourseContentFragment : Fragment() {
@@ -33,6 +35,7 @@ class CourseContentFragment : Fragment() {
         val rvSections = view.findViewById<RecyclerView>(R.id.rvCourseSections)
         val pbLoading = view.findViewById<ProgressBar>(R.id.pbCourseContentLoading)
         val tvEmpty = view.findViewById<TextView>(R.id.tvCourseContentEmpty)
+        val swipeRefresh = view.findViewById<SwipeRefreshLayout>(R.id.swipeRefreshContent)
 
         adapter = CourseSectionAdapter()
         rvSections.layoutManager = LinearLayoutManager(context)
@@ -42,6 +45,15 @@ class CourseContentFragment : Fragment() {
         val token = arguments?.getString("USER_TOKEN")
 
         viewModel = ViewModelProvider(requireActivity())[CourseContentViewModel::class.java]
+
+        swipeRefresh.setupBrandColors()
+        swipeRefresh.setOnRefreshListener {
+            if (!token.isNullOrBlank() && courseId != 0) {
+                viewModel.loadCourseContents(token, courseId, forceRefresh = true)
+            } else {
+                swipeRefresh.isRefreshing = false
+            }
+        }
 
         if (!token.isNullOrBlank() && courseId != 0) {
             pbLoading.visibility = View.VISIBLE
@@ -57,10 +69,12 @@ class CourseContentFragment : Fragment() {
                 tvEmpty.visibility = View.GONE
                 adapter.updateData(sections)
             }
+            swipeRefresh.isRefreshing = false
         }
 
         viewModel.message.observe(viewLifecycleOwner) { message ->
             pbLoading.visibility = View.GONE
+            swipeRefresh.isRefreshing = false
             Toast.makeText(context, message, Toast.LENGTH_LONG).show()
         }
     }

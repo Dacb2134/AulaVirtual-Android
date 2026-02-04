@@ -13,9 +13,11 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.core.content.ContextCompat
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.bumptech.glide.Glide
 import com.practicas.aulavirtualapp.R
 import com.practicas.aulavirtualapp.model.CourseSection
+import com.practicas.aulavirtualapp.utils.setupBrandColors
 import com.practicas.aulavirtualapp.viewmodel.CourseContentViewModel
 import com.practicas.aulavirtualapp.viewmodel.CourseParticipantsViewModel
 
@@ -34,7 +36,6 @@ class CourseOverviewFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val tvCourseName = view.findViewById<TextView>(R.id.tvOverviewCourseName)
         val tvCourseShort = view.findViewById<TextView>(R.id.tvOverviewCourseShort)
         val tvSummary = view.findViewById<TextView>(R.id.tvOverviewSummary)
         val tvSectionsCount = view.findViewById<TextView>(R.id.tvOverviewSectionsCount)
@@ -46,17 +47,26 @@ class CourseOverviewFragment : Fragment() {
         val ivTeacherPhoto = view.findViewById<ImageView>(R.id.ivOverviewTeacherPhoto)
         val tvTeacherName = view.findViewById<TextView>(R.id.tvOverviewTeacherName)
         val tvTeacherRole = view.findViewById<TextView>(R.id.tvOverviewTeacherRole)
+        val swipeRefresh = view.findViewById<SwipeRefreshLayout>(R.id.swipeRefreshOverview)
 
-        val courseName = arguments?.getString("COURSE_NAME") ?: "Curso"
         val courseShortName = arguments?.getString("COURSE_SHORT_NAME") ?: ""
         val courseId = arguments?.getInt("COURSE_ID") ?: 0
         val token = arguments?.getString("USER_TOKEN")
 
-        tvCourseName.text = courseName
-        tvCourseShort.text = courseShortName.ifBlank { "Código no disponible" }
+        tvCourseShort.text = courseShortName.ifBlank { "Código del curso no disponible" }
 
         viewModel = ViewModelProvider(requireActivity())[CourseContentViewModel::class.java]
         participantsViewModel = ViewModelProvider(requireActivity())[CourseParticipantsViewModel::class.java]
+
+        swipeRefresh.setupBrandColors()
+        swipeRefresh.setOnRefreshListener {
+            if (!token.isNullOrBlank() && courseId != 0) {
+                viewModel.loadCourseContents(token, courseId, forceRefresh = true)
+                participantsViewModel.loadTeachers(token, courseId)
+            } else {
+                swipeRefresh.isRefreshing = false
+            }
+        }
 
         if (!token.isNullOrBlank() && courseId != 0) {
             pbLoading.visibility = View.VISIBLE
@@ -75,6 +85,7 @@ class CourseOverviewFragment : Fragment() {
                 layoutActivityTypes = layoutActivityTypes,
                 sections = sections
             )
+            swipeRefresh.isRefreshing = false
         }
 
         participantsViewModel.teachers.observe(viewLifecycleOwner) { teachers ->
@@ -100,11 +111,13 @@ class CourseOverviewFragment : Fragment() {
         }
 
         participantsViewModel.message.observe(viewLifecycleOwner) { message ->
+            swipeRefresh.isRefreshing = false
             Toast.makeText(context, message, Toast.LENGTH_LONG).show()
         }
 
         viewModel.message.observe(viewLifecycleOwner) { message ->
             pbLoading.visibility = View.GONE
+            swipeRefresh.isRefreshing = false
             Toast.makeText(context, message, Toast.LENGTH_LONG).show()
         }
     }

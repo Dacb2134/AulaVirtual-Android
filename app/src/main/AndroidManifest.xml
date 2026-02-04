@@ -27,6 +27,7 @@
 
         <activity android:name=".ui.HomeActivity" />
         <activity android:name=".ui.CourseDetailActivity" />
+        <activity android:name=".ui.AssignmentDetailActivity" />
         <activity android:name=".ui.SettingsActivity" />
         <activity android:name=".ui.BadgesActivity" />
 

@@ -44,7 +44,15 @@ class AgendaFragment : Fragment() {
         swipeRefresh.setupBrandColors()
 
         rvAgenda.layoutManager = LinearLayoutManager(context)
-        adapter = AssignmentAdapter()
+        adapter = AssignmentAdapter(showCourseName = true) { assignment ->
+            val intent = AssignmentDetailActivity.createIntent(
+                requireContext(),
+                assignment,
+                assignment.courseName,
+                0
+            )
+            startActivity(intent)
+        }
         rvAgenda.adapter = adapter
 
         viewModel = ViewModelProvider(this)[AgendaViewModel::class.java]
