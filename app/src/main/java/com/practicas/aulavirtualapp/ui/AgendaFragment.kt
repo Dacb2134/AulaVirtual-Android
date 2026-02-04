@@ -15,12 +15,14 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.google.android.material.chip.ChipGroup
 import com.practicas.aulavirtualapp.R
 import com.practicas.aulavirtualapp.adapter.AssignmentAdapter
+import com.practicas.aulavirtualapp.utils.setupBrandColors
 import com.practicas.aulavirtualapp.viewmodel.AgendaViewModel
 
 class AgendaFragment : Fragment() {
 
     private lateinit var adapter: AssignmentAdapter
     private lateinit var viewModel: AgendaViewModel
+    private var isUserRefreshing = false
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -39,7 +41,7 @@ class AgendaFragment : Fragment() {
 
         // NUEVO: Referencia Swipe
         val swipeRefresh = view.findViewById<SwipeRefreshLayout>(R.id.swipeRefreshAgenda)
-        swipeRefresh.setColorSchemeResources(R.color.primary, R.color.secondary)
+        swipeRefresh.setupBrandColors()
 
         rvAgenda.layoutManager = LinearLayoutManager(context)
         adapter = AssignmentAdapter()
@@ -53,9 +55,11 @@ class AgendaFragment : Fragment() {
         // NUEVO: Listener Swipe
         swipeRefresh.setOnRefreshListener {
             if (token.isNotEmpty()) {
+                isUserRefreshing = true
                 viewModel.cargarAgendaGlobal(token, userId)
             } else {
                 swipeRefresh.isRefreshing = false
+                isUserRefreshing = false
             }
         }
 
@@ -71,10 +75,10 @@ class AgendaFragment : Fragment() {
 
         viewModel.cargando.observe(viewLifecycleOwner) { estaCargando ->
             // 1. Controlamos la bolita de arriba (Swipe)
-            swipeRefresh.isRefreshing = estaCargando
+            swipeRefresh.isRefreshing = isUserRefreshing && estaCargando
 
             // 2. Controlamos el Zorro del centro
-            if (estaCargando && !swipeRefresh.isRefreshing) {
+            if (estaCargando && !isUserRefreshing) {
                 // Si carga y NO estamos jalando el dedo -> MUESTRA ZORRO
                 pbLoading.visibility = View.VISIBLE
 
@@ -87,6 +91,10 @@ class AgendaFragment : Fragment() {
 
                 // Mostramos la lista si ya hay datos
                 if (!estaCargando) rvAgenda.visibility = View.VISIBLE
+            }
+
+            if (!estaCargando) {
+                isUserRefreshing = false
             }
         }
 

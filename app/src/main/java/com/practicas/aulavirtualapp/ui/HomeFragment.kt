@@ -15,6 +15,7 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout // IMPORTADO
 import com.practicas.aulavirtualapp.R
 import com.practicas.aulavirtualapp.adapter.CourseAdapter
+import com.practicas.aulavirtualapp.utils.setupBrandColors
 import com.practicas.aulavirtualapp.viewmodel.HomeViewModel
 
 class HomeFragment : Fragment() {
@@ -38,7 +39,7 @@ class HomeFragment : Fragment() {
 
         // NUEVO: Referencia Swipe
         val swipeRefresh = view.findViewById<SwipeRefreshLayout>(R.id.swipeRefreshHome)
-        swipeRefresh.setColorSchemeResources(R.color.primary, R.color.secondary)
+        swipeRefresh.setupBrandColors()
 
         rvCourses.layoutManager = LinearLayoutManager(context)
 

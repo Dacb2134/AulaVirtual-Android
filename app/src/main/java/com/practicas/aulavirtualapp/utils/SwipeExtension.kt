@@ -5,5 +5,5 @@ import com.practicas.aulavirtualapp.R
 
 // Función de extensión para configurar colores automáticamente
 fun SwipeRefreshLayout.setupBrandColors() {
-    setColorSchemeResources(R.color.primary, R.color.secondary)
+    setColorSchemeResources(R.color.primary)
 }

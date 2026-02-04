@@ -21,6 +21,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.bumptech.glide.Glide
 import com.practicas.aulavirtualapp.R
+import com.practicas.aulavirtualapp.utils.setupBrandColors
 import com.practicas.aulavirtualapp.viewmodel.ProfileViewModel
 
 class ProfileFragment : Fragment() {
@@ -65,7 +66,7 @@ class ProfileFragment : Fragment() {
 
         // REFERENCIA AL SWIPE
         val swipeRefresh = view.findViewById<SwipeRefreshLayout>(R.id.swipeRefreshProfile)
-        swipeRefresh.setColorSchemeResources(R.color.primary, R.color.secondary)
+        swipeRefresh.setupBrandColors()
 
         // Contenedores clicables
         val containerBadges = view.findViewById<LinearLayout>(R.id.containerBadges)
