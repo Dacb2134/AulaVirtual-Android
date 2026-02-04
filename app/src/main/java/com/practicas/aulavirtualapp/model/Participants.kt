@@ -6,10 +6,10 @@ data class EnrolledUser(
     @SerializedName("id") val id: Int,
     @SerializedName("fullname") val fullName: String?,
     @SerializedName("profileimageurl") val profileImageUrl: String?,
-    @SerializedName("roles") val roles: List<UserRole> = emptyList()
+    @SerializedName("roles") val roles: List<ParticipantRole> = emptyList()
 )
 
-data class UserRole(
+data class ParticipantRole(
     @SerializedName("shortname") val shortName: String?,
     @SerializedName("name") val name: String?
 )
