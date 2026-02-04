@@ -1,18 +1,25 @@
 package com.practicas.aulavirtualapp.ui
 
+import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.provider.OpenableColumns
 import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.text.HtmlCompat
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.textfield.TextInputEditText
 import com.practicas.aulavirtualapp.R
 import com.practicas.aulavirtualapp.model.Assignment
 import com.practicas.aulavirtualapp.network.RetrofitClient
+import com.practicas.aulavirtualapp.utils.AssignmentProgressStore
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -20,6 +27,28 @@ import java.util.Locale
 class AssignmentDetailActivity : AppCompatActivity() {
 
     private val dateTimeFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale("es", "ES"))
+    private var selectedFileUri: Uri? = null
+    private var assignmentId: Int = 0
+
+    private val permissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            openFilePicker()
+        } else {
+            Toast.makeText(this, "Necesitamos permiso para leer tus archivos.", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private val pickFileLauncher = registerForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            selectedFileUri = uri
+            findViewById<TextView>(R.id.tvAssignmentSelectedFile).text = fileName(uri)
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -35,6 +64,11 @@ class AssignmentDetailActivity : AppCompatActivity() {
         val tvAttempts = findViewById<TextView>(R.id.tvAssignmentAttempts)
         val tvDescription = findViewById<TextView>(R.id.tvAssignmentDescription)
         val btnOpenMoodle = findViewById<android.view.View>(R.id.btnAssignmentOpenMoodle)
+        val btnRequestAccess = findViewById<MaterialButton>(R.id.btnAssignmentRequestAccess)
+        val btnAttachFile = findViewById<MaterialButton>(R.id.btnAssignmentAttachFile)
+        val btnSubmit = findViewById<MaterialButton>(R.id.btnAssignmentSubmit)
+        val btnMarkComplete = findViewById<MaterialButton>(R.id.btnAssignmentMarkComplete)
+        val etText = findViewById<TextInputEditText>(R.id.etAssignmentText)
 
         val title = intent.getStringExtra(EXTRA_ASSIGNMENT_TITLE).orEmpty()
         val description = intent.getStringExtra(EXTRA_ASSIGNMENT_DESCRIPTION).orEmpty()
@@ -46,6 +80,7 @@ class AssignmentDetailActivity : AppCompatActivity() {
         val gradingDueDate = intent.getLongExtra(EXTRA_ASSIGNMENT_GRADING_DUE, 0L)
         val maxAttempts = intent.getIntExtra(EXTRA_ASSIGNMENT_MAX_ATTEMPTS, 0)
         val courseModuleId = intent.getIntExtra(EXTRA_ASSIGNMENT_COURSE_MODULE_ID, 0)
+        assignmentId = intent.getIntExtra(EXTRA_ASSIGNMENT_ID, 0)
 
         if (courseColor != 0) {
             header.setBackgroundColor(courseColor)
@@ -75,6 +110,64 @@ class AssignmentDetailActivity : AppCompatActivity() {
             }
             val url = "${RetrofitClient.baseUrl}mod/assign/view.php?id=$courseModuleId"
             startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+        }
+
+        btnRequestAccess.setOnClickListener { requestFilePermission() }
+        btnAttachFile.setOnClickListener { requestFilePermission() }
+
+        btnSubmit.setOnClickListener {
+            val hasText = !etText.text.isNullOrBlank()
+            val hasFile = selectedFileUri != null
+            if (!hasText && !hasFile) {
+                Toast.makeText(this, "Agrega texto o un archivo para continuar.", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            Toast.makeText(this, "Entrega preparada. Revisa Moodle para enviarla.", Toast.LENGTH_LONG).show()
+        }
+
+        updateCompleteButton(btnMarkComplete)
+        btnMarkComplete.setOnClickListener {
+            val isCompleted = AssignmentProgressStore.getCompleted(this).contains(assignmentId.toString())
+            AssignmentProgressStore.setCompleted(this, assignmentId, !isCompleted)
+            updateCompleteButton(btnMarkComplete)
+        }
+    }
+
+    private fun requestFilePermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            openFilePicker()
+            return
+        }
+
+        val permission = Manifest.permission.READ_EXTERNAL_STORAGE
+        if (checkSelfPermission(permission) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            openFilePicker()
+        } else {
+            permissionLauncher.launch(permission)
+        }
+    }
+
+    private fun openFilePicker() {
+        pickFileLauncher.launch(arrayOf("*/*"))
+    }
+
+    private fun fileName(uri: Uri): String {
+        val cursor = contentResolver.query(uri, null, null, null, null)
+        cursor?.use {
+            val nameIndex = it.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+            if (nameIndex != -1 && it.moveToFirst()) {
+                return it.getString(nameIndex)
+            }
+        }
+        return uri.lastPathSegment ?: "Archivo adjunto"
+    }
+
+    private fun updateCompleteButton(button: MaterialButton) {
+        val isCompleted = AssignmentProgressStore.getCompleted(this).contains(assignmentId.toString())
+        if (isCompleted) {
+            button.text = "Marcar como pendiente"
+        } else {
+            button.text = "Marcar como hecha"
         }
     }
 
@@ -131,6 +224,7 @@ class AssignmentDetailActivity : AppCompatActivity() {
         private const val EXTRA_ASSIGNMENT_GRADING_DUE = "extra_assignment_grading_due"
         private const val EXTRA_ASSIGNMENT_MAX_ATTEMPTS = "extra_assignment_max_attempts"
         private const val EXTRA_ASSIGNMENT_COURSE_MODULE_ID = "extra_assignment_course_module_id"
+        private const val EXTRA_ASSIGNMENT_ID = "extra_assignment_id"
 
         fun createIntent(
             context: Context,
@@ -160,6 +254,7 @@ class AssignmentDetailActivity : AppCompatActivity() {
             intent.putExtra(EXTRA_ASSIGNMENT_GRADING_DUE, assignment.gradingDueDate ?: 0L)
             intent.putExtra(EXTRA_ASSIGNMENT_MAX_ATTEMPTS, assignment.maxAttempts ?: 0)
             intent.putExtra(EXTRA_ASSIGNMENT_COURSE_MODULE_ID, assignment.courseModuleId ?: 0)
+            intent.putExtra(EXTRA_ASSIGNMENT_ID, assignment.id)
             return intent
         }
     }
