@@ -11,7 +11,8 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.google.android.material.chip.ChipGroup // Importante
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+import com.google.android.material.chip.ChipGroup
 import com.practicas.aulavirtualapp.R
 import com.practicas.aulavirtualapp.adapter.AssignmentAdapter
 import com.practicas.aulavirtualapp.viewmodel.AgendaViewModel
@@ -34,9 +35,11 @@ class AgendaFragment : Fragment() {
         val rvAgenda = view.findViewById<RecyclerView>(R.id.rvAgenda)
         val pbLoading = view.findViewById<ProgressBar>(R.id.pbLoadingAgenda)
         val tvEmpty = view.findViewById<TextView>(R.id.tvEmptyAgenda)
-
-        // Obtenemos referencia al grupo de Chips
         val chipGroup = view.findViewById<ChipGroup>(R.id.chipGroupFilters)
+
+        // NUEVO: Referencia Swipe
+        val swipeRefresh = view.findViewById<SwipeRefreshLayout>(R.id.swipeRefreshAgenda)
+        swipeRefresh.setColorSchemeResources(R.color.primary, R.color.secondary)
 
         rvAgenda.layoutManager = LinearLayoutManager(context)
         adapter = AssignmentAdapter()
@@ -47,7 +50,15 @@ class AgendaFragment : Fragment() {
         val token = requireActivity().intent.getStringExtra("USER_TOKEN") ?: ""
         val userId = requireActivity().intent.getIntExtra("USER_ID", 0)
 
-        // ESCUCHAMOS LOS CLICS EN LOS FILTROS
+        // NUEVO: Listener Swipe
+        swipeRefresh.setOnRefreshListener {
+            if (token.isNotEmpty()) {
+                viewModel.cargarAgendaGlobal(token, userId)
+            } else {
+                swipeRefresh.isRefreshing = false
+            }
+        }
+
         chipGroup.setOnCheckedStateChangeListener { _, checkedIds ->
             if (checkedIds.isNotEmpty()) {
                 when (checkedIds[0]) {
@@ -59,15 +70,26 @@ class AgendaFragment : Fragment() {
         }
 
         viewModel.cargando.observe(viewLifecycleOwner) { estaCargando ->
-            if (estaCargando) {
+            // 1. Controlamos la bolita de arriba (Swipe)
+            swipeRefresh.isRefreshing = estaCargando
+
+            // 2. Controlamos el Zorro del centro
+            if (estaCargando && !swipeRefresh.isRefreshing) {
+                // Si carga y NO estamos jalando el dedo -> MUESTRA ZORRO
                 pbLoading.visibility = View.VISIBLE
-                tvEmpty.visibility = View.GONE
+
+                // Ocultamos la lista y el texto vacío para que solo se vea el zorro
                 rvAgenda.visibility = View.GONE
+                tvEmpty.visibility = View.GONE
             } else {
+                // Si terminó de cargar O estamos haciendo swipe -> OCULTA ZORRO
                 pbLoading.visibility = View.GONE
-                rvAgenda.visibility = View.VISIBLE
+
+                // Mostramos la lista si ya hay datos
+                if (!estaCargando) rvAgenda.visibility = View.VISIBLE
             }
         }
+
 
         viewModel.agenda.observe(viewLifecycleOwner) { tareas ->
             if (tareas.isNotEmpty()) {
@@ -76,7 +98,6 @@ class AgendaFragment : Fragment() {
             } else {
                 tvEmpty.text = "No se encontraron tareas con este filtro."
                 tvEmpty.visibility = View.VISIBLE
-                // Aunque esté vacío, actualizamos el adapter para limpiar la lista
                 adapter.updateData(emptyList())
             }
         }
@@ -91,7 +112,6 @@ class AgendaFragment : Fragment() {
         }
 
         if (token.isNotEmpty()) {
-
             viewModel.cargarAgendaGlobal(token, userId)
         } else {
             tvEmpty.text = "Error: Sesión no válida."

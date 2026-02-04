@@ -52,4 +52,5 @@ dependencies {
     // GSON (Para entender los datos de Moodle)
     implementation("com.google.code.gson:gson:2.10.1")
     implementation("com.github.bumptech.glide:glide:4.16.0")
+    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
 }

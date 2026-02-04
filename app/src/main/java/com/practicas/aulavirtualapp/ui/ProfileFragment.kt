@@ -18,6 +18,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.bumptech.glide.Glide
 import com.practicas.aulavirtualapp.R
 import com.practicas.aulavirtualapp.viewmodel.ProfileViewModel
@@ -58,9 +59,13 @@ class ProfileFragment : Fragment() {
         // UI General
         val tvBadgeCount = view.findViewById<TextView>(R.id.tvBadgeCount)
         val tvFileCount = view.findViewById<TextView>(R.id.tvFileCount)
-        val pbLoading = view.findViewById<ProgressBar>(R.id.pbLoading)
+        val pbLoading = view.findViewById<ProgressBar>(R.id.pbLoading) // Tu Zorro
         val btnOpenWeb = view.findViewById<Button>(R.id.btnOpenWeb)
         val btnSettings = view.findViewById<ImageButton>(R.id.btnSettings)
+
+        // REFERENCIA AL SWIPE
+        val swipeRefresh = view.findViewById<SwipeRefreshLayout>(R.id.swipeRefreshProfile)
+        swipeRefresh.setColorSchemeResources(R.color.primary, R.color.secondary)
 
         // Contenedores clicables
         val containerBadges = view.findViewById<LinearLayout>(R.id.containerBadges)
@@ -69,10 +74,6 @@ class ProfileFragment : Fragment() {
         // Datos del Intent
         userToken = requireActivity().intent.getStringExtra("USER_TOKEN") ?: ""
         currentUserId = requireActivity().intent.getIntExtra("USER_ID", 0)
-
-        // 🚨🚨🚨 LÍNEA DE PRUEBA (DEBUG) 🚨🚨🚨
-        // Esto te mostrará el ID en pantalla. Verifica si cambia al cambiar de usuario.
-        Toast.makeText(requireContext(), "DEBUG ID: $currentUserId", Toast.LENGTH_LONG).show()
 
         // --- LISTENERS ---
         ivProfilePic.setOnClickListener { mostrarOpcionesFoto() }
@@ -90,7 +91,6 @@ class ProfileFragment : Fragment() {
         // Clic en Archivos
         containerFiles.setOnClickListener {
             val intent = Intent(requireContext(), FilesActivity::class.java)
-            // Pasamos los datos explícitamente para que FilesActivity los reciba en el Intent
             intent.putExtra("USER_TOKEN", userToken)
             intent.putExtra("USER_ID", currentUserId)
             startActivity(intent)
@@ -98,6 +98,15 @@ class ProfileFragment : Fragment() {
 
         // --- VIEWMODEL ---
         viewModel = ViewModelProvider(this)[ProfileViewModel::class.java]
+
+        // ACCIÓN SWIPE: Recargar
+        swipeRefresh.setOnRefreshListener {
+            if (userToken.isNotEmpty()) {
+                viewModel.cargarPerfilCompleto(userToken, currentUserId)
+            } else {
+                swipeRefresh.isRefreshing = false
+            }
+        }
 
         // 1. OBSERVAR ROL
         viewModel.userRole.observe(viewLifecycleOwner) { rol ->
@@ -131,7 +140,6 @@ class ProfileFragment : Fragment() {
                 tvDescription.text = "¡Hola! Soy estudiante en esta plataforma."
             }
 
-            // Cargar imagen con Glide + Token
             val imageUrlWithToken = "${user.profileImageUrl}?token=$userToken"
             Glide.with(this)
                 .load(imageUrlWithToken)
@@ -150,14 +158,27 @@ class ProfileFragment : Fragment() {
             tvFileCount.text = count.toString()
         }
 
-        // Loading spinner
-        viewModel.cargando.observe(viewLifecycleOwner) { pbLoading.visibility = if (it) View.VISIBLE else View.GONE }
+        // CONTROL DE CARGA (ZORRO + SWIPE)
+        viewModel.cargando.observe(viewLifecycleOwner) { isLoading ->
+            // Controlar el Swipe de arriba
+            swipeRefresh.isRefreshing = isLoading
 
-        // Iniciar carga de datos
+            // Si está cargando y NO estamos deslizando (es carga inicial), mostramos el Zorro abajo
+            if (isLoading && !swipeRefresh.isRefreshing) {
+                pbLoading.visibility = View.VISIBLE
+            } else {
+                pbLoading.visibility = View.GONE
+            }
+        }
+
+        // Carga inicial
         if (userToken.isNotEmpty()) {
+            if (!swipeRefresh.isRefreshing) pbLoading.visibility = View.VISIBLE
             viewModel.cargarPerfilCompleto(userToken, currentUserId)
         }
-    }
+    } // <--- CIERRE DE onViewCreated
+
+    // --- FUNCIONES AUXILIARES (DENTRO DE LA CLASE) ---
 
     private fun mostrarOpcionesFoto() {
         val opciones = arrayOf("Ver foto completa", "Cambiar foto (Web)")
@@ -174,4 +195,4 @@ class ProfileFragment : Fragment() {
         val url = if (currentSiteUrl.endsWith("/")) currentSiteUrl.dropLast(1) + path else currentSiteUrl + path
         startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
     }
-}
+} // <--- CIERRE DE LA CLASE ProfileFragment
