@@ -21,7 +21,7 @@ class ProfileViewModel : ViewModel() {
     private val _userDetail = MutableLiveData<UserDetail>()
     val userDetail: LiveData<UserDetail> get() = _userDetail
 
-    // 👇 NUEVO: LiveData específico para el texto de la cinta
+    // LiveData para el texto de la cinta (ADMIN, DOCENTE, ESTUDIANTE)
     private val _userRole = MutableLiveData<String>()
     val userRole: LiveData<String> get() = _userRole
 
@@ -34,45 +34,85 @@ class ProfileViewModel : ViewModel() {
     private val _cargando = MutableLiveData<Boolean>()
     val cargando: LiveData<Boolean> get() = _cargando
 
+    // Variable temporal para guardar si es admin mientras carga el resto del perfil
+    private var isSiteAdmin = false
+
     fun cargarPerfilCompleto(token: String, userId: Int) {
         _cargando.value = true
 
-        // 1. DETERMINAR ROL (Admin vs Estudiante)
-        // Usamos getSiteInfo porque tu prueba en Postman confirmó que ahí sale "userissiteadmin"
+        // 1. PRIMER CHEQUEO: ¿Es Super Admin? (Fuente: getSiteInfo)
         repository.getSiteInfo(token).enqueue(object : Callback<SiteInfoResponse> {
             override fun onResponse(call: Call<SiteInfoResponse>, response: Response<SiteInfoResponse>) {
                 if (response.isSuccessful && response.body() != null) {
-                    val info = response.body()!!
-                    if (info.isSiteAdmin) {
+                    isSiteAdmin = response.body()!!.isSiteAdmin
+
+                    if (isSiteAdmin) {
                         _userRole.value = "ADMIN"
-                    } else {
-                        _userRole.value = "ESTUDIANTE"
+                        // Si es admin, tiene prioridad sobre cualquier otro rol.
                     }
-                } else {
-                    _userRole.value = "ESTUDIANTE"
                 }
             }
             override fun onFailure(call: Call<SiteInfoResponse>, t: Throwable) {
-                _userRole.value = "ESTUDIANTE"
+                // Si falla la red, no asumimos nada todavía
             }
         })
 
-        // 2. OBTENER DETALLES DEL USUARIO
+        // 2. SEGUNDO CHEQUEO: Detalles del usuario (Lista de usuarios)
         repository.getUserDetails(token, userId).enqueue(object : Callback<List<UserDetail>> {
             override fun onResponse(call: Call<List<UserDetail>>, response: Response<List<UserDetail>>) {
                 if (response.isSuccessful && response.body() != null) {
-                    val lista = response.body()!!
+                    val lista = response.body()!! // Recibimos la lista directa [ ... ]
+
                     if (lista.isNotEmpty()) {
-                        _userDetail.value = lista[0]
+                        val user = lista[0] // Tomamos el primer usuario
+                        _userDetail.value = user // Actualizamos la UI con los datos
+
+                        // Si NO es Admin global, verificamos si es Docente
+                        if (!isSiteAdmin) {
+                            procesarRoles(user)
+                        }
+                    } else {
+                        Log.e("Profile", "La lista de usuarios llegó vacía")
                     }
+                } else {
+                    Log.e("Profile", "Error en respuesta: ${response.code()}")
                 }
             }
             override fun onFailure(call: Call<List<UserDetail>>, t: Throwable) {
                 _cargando.value = false
+                Log.e("Profile", "Fallo de red: ${t.message}")
             }
         })
 
-        // 3. MEDALLAS
+        // 3. CARGA DE EXTRAS (Medallas y Archivos)
+        cargarExtras(token, userId)
+    }
+
+    // Lógica inteligente: Combina Roles de API + Atributo de Departamento
+    private fun procesarRoles(user: UserDetail) {
+        val roles = user.roles ?: emptyList()
+
+        // A. Buscamos por ROL TÉCNICO
+        val tieneRolDocente = roles.any { rol ->
+            rol.shortName == "editingteacher" ||
+                    rol.shortName == "teacher" ||
+                    rol.shortName == "coursecreator" ||
+                    rol.shortName == "manager"
+        }
+
+        // B. Buscamos por DEPARTAMENTO (Tu "Plan B" seguro)
+        // Detecta si pusiste "Docente" en el campo departamento de Moodle
+        val esDepartamentoDocente = user.department?.contains("Docente", ignoreCase = true) == true
+
+        // --- DECISIÓN FINAL ---
+        if (tieneRolDocente || esDepartamentoDocente) {
+            _userRole.value = "DOCENTE"
+        } else {
+            _userRole.value = "ESTUDIANTE"
+        }
+    }
+
+    private fun cargarExtras(token: String, userId: Int) {
         repository.getUserBadges(token, userId).enqueue(object : Callback<BadgeResponse> {
             override fun onResponse(call: Call<BadgeResponse>, response: Response<BadgeResponse>) {
                 if (response.isSuccessful) _badges.value = response.body()?.badges ?: emptyList()
@@ -80,7 +120,6 @@ class ProfileViewModel : ViewModel() {
             override fun onFailure(call: Call<BadgeResponse>, t: Throwable) {}
         })
 
-        // 4. ARCHIVOS (Finaliza la carga visual)
         repository.getUserFiles(token, userId).enqueue(object : Callback<List<MoodleFile>> {
             override fun onResponse(call: Call<List<MoodleFile>>, response: Response<List<MoodleFile>>) {
                 _cargando.value = false

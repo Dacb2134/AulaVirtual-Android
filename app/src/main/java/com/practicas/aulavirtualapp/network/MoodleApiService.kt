@@ -5,7 +5,7 @@ import com.practicas.aulavirtualapp.model.BadgeResponse
 import com.practicas.aulavirtualapp.model.Course
 import com.practicas.aulavirtualapp.model.MoodleFile
 import com.practicas.aulavirtualapp.model.SiteInfoResponse
-import com.practicas.aulavirtualapp.model.UserDetail // Importamos directo el modelo del usuario
+import com.practicas.aulavirtualapp.model.UserDetail
 import retrofit2.Call
 import retrofit2.http.Field
 import retrofit2.http.FormUrlEncoded
@@ -15,7 +15,6 @@ import retrofit2.http.Query
 
 interface MoodleApiService {
 
-    // ... (Login y SiteInfo quedan igual) ...
     @GET("login/token.php")
     fun login(
         @Query("username") username: String,
@@ -26,7 +25,7 @@ interface MoodleApiService {
     @POST("webservice/rest/server.php?wsfunction=core_webservice_get_site_info&moodlewsrestformat=json")
     fun getSiteInfo(@Query("wstoken") token: String): Call<SiteInfoResponse>
 
-    // 👇 CAMBIO IMPORTANTE: Devuelve una LISTA directa, no un objeto Response
+    // 👇 CORREGIDO: Devuelve una LISTA directa
     @FormUrlEncoded
     @POST("webservice/rest/server.php")
     fun getUserDetails(
@@ -37,7 +36,6 @@ interface MoodleApiService {
         @Field("values[0]") userId: Int
     ): Call<List<UserDetail>>
 
-    // ... (El resto de funciones UserCourses, Assignments, etc. quedan igual) ...
     @GET("webservice/rest/server.php")
     fun getUserCourses(
         @Query("wstoken") token: String,
@@ -46,7 +44,6 @@ interface MoodleApiService {
         @Query("moodlewsrestformat") format: String = "json"
     ): Call<List<Course>>
 
-    // ... (Asegúrate de tener el resto de tus funciones aquí) ...
     @GET("webservice/rest/server.php")
     fun getCourseAssignments(
         @Query("wstoken") token: String,
