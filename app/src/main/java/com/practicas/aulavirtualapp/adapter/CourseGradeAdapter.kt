@@ -6,10 +6,10 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.practicas.aulavirtualapp.R
-import com.practicas.aulavirtualapp.model.GradeItem
+import com.practicas.aulavirtualapp.model.CourseGradeRow
 
 class CourseGradeAdapter(
-    private var grades: List<GradeItem> = emptyList()
+    private var rows: List<CourseGradeRow> = emptyList()
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     private companion object {
@@ -31,8 +31,10 @@ class CourseGradeAdapter(
     }
 
     override fun getItemViewType(position: Int): Int {
-        val itemType = grades[position].itemType?.lowercase()
-        return if (itemType == "category") VIEW_TYPE_CATEGORY else VIEW_TYPE_GRADE
+        return when (rows[position]) {
+            is CourseGradeRow.Category -> VIEW_TYPE_CATEGORY
+            is CourseGradeRow.Item -> VIEW_TYPE_GRADE
+        }
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
@@ -47,7 +49,11 @@ class CourseGradeAdapter(
     }
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
-        val grade = grades[position]
+        val row = rows[position]
+        val grade = when (row) {
+            is CourseGradeRow.Category -> row.grade
+            is CourseGradeRow.Item -> row.grade
+        }
         val title = grade.itemName ?: "Actividad"
         val weight = grade.weightFormatted ?: ""
 
@@ -65,20 +71,41 @@ class CourseGradeAdapter(
                 "category" -> "Categoría"
                 else -> "Evaluación"
             }
+            val categoryLabel = (row as? CourseGradeRow.Item)?.categoryTitle
+            val typeWithCategory = if (!categoryLabel.isNullOrBlank() && grade.itemType?.lowercase() != "course") {
+                "$typeLabel · $categoryLabel"
+            } else {
+                typeLabel
+            }
 
             holder.tvTitle.text = title
-            holder.tvType.text = typeLabel
+            holder.tvType.text = typeWithCategory
             holder.tvScore.text = score
             holder.tvRange.text = "$min - $max $percentage".trim()
             holder.tvWeight.text = if (weight.isNotBlank()) "Peso: $weight" else ""
             holder.tvWeight.visibility = if (weight.isNotBlank()) View.VISIBLE else View.GONE
+
+            applyIndent(holder.itemView, categoryLabel != null && grade.itemType?.lowercase() != "course")
         }
     }
 
-    override fun getItemCount(): Int = grades.size
+    override fun getItemCount(): Int = rows.size
 
-    fun updateData(newGrades: List<GradeItem>) {
-        grades = newGrades
+    fun updateData(newRows: List<CourseGradeRow>) {
+        rows = newRows
         notifyDataSetChanged()
+    }
+
+    private fun applyIndent(view: View, indented: Boolean) {
+        val params = view.layoutParams as? ViewGroup.MarginLayoutParams ?: return
+        val startMargin = if (indented) {
+            (view.resources.displayMetrics.density * 12).toInt()
+        } else {
+            (view.resources.displayMetrics.density * 0).toInt()
+        }
+        if (params.marginStart != startMargin) {
+            params.marginStart = startMargin
+            view.layoutParams = params
+        }
     }
 }

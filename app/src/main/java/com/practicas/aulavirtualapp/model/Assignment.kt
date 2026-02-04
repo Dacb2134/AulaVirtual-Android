@@ -13,6 +13,13 @@ data class CourseAssignments(
     @SerializedName("assignments") val assignments: List<Assignment>
 )
 
+data class AssignmentConfig(
+    @SerializedName("plugin") val plugin: String? = null,
+    @SerializedName("subtype") val subtype: String? = null,
+    @SerializedName("name") val name: String? = null,
+    @SerializedName("value") val value: String? = null
+)
+
 // La Tarea individual (ACTUALIZADA)
 data class Assignment(
     @SerializedName("id") val id: Int,
@@ -24,6 +31,7 @@ data class Assignment(
     @SerializedName("cutoffdate") val cutoffDate: Long? = null,
     @SerializedName("gradingduedate") val gradingDueDate: Long? = null,
     @SerializedName("maxattempts") val maxAttempts: Int? = null,
+    @SerializedName("configs") val configs: List<AssignmentConfig> = emptyList(),
 
     // Agregamos estos campos para guardar el nombre y color del curso.
     var courseName: String = "",
