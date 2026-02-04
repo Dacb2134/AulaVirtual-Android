@@ -24,6 +24,7 @@ class CourseDetailActivity : AppCompatActivity() {
         val courseId = intent.getIntExtra("COURSE_ID", 0)
         val courseColor = intent.getIntExtra("COURSE_COLOR", 0)
         val token = intent.getStringExtra("USER_TOKEN")
+        val userId = intent.getIntExtra("USER_ID", 0)
 
         if (token.isNullOrBlank() || courseId == 0) {
             Toast.makeText(this, "Error: Datos del curso incompletos", Toast.LENGTH_SHORT).show()

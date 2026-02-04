@@ -34,12 +34,20 @@ class AssignmentAdapter(
         val tareaActual = assignments[position]
 
         // --- LÓGICA DE AGRUPACIÓN (FECHAS) ---
-        val fechaActualTexto = headerFormat.format(Date(tareaActual.dueDate * 1000))
+        val fechaActualTexto = if (tareaActual.dueDate > 0) {
+            headerFormat.format(Date(tareaActual.dueDate * 1000))
+        } else {
+            "Sin fecha"
+        }
         var mostrarEncabezado = true
 
         if (position > 0) {
             val tareaAnterior = assignments[position - 1]
-            val fechaAnteriorTexto = headerFormat.format(Date(tareaAnterior.dueDate * 1000))
+            val fechaAnteriorTexto = if (tareaAnterior.dueDate > 0) {
+                headerFormat.format(Date(tareaAnterior.dueDate * 1000))
+            } else {
+                "Sin fecha"
+            }
             if (fechaActualTexto == fechaAnteriorTexto) {
                 mostrarEncabezado = false
             }
@@ -80,9 +88,16 @@ class AssignmentAdapter(
             val unaHora = 60 * 60 * 1000
             val unDia = 24 * unaHora
 
-            val fechaHoraTexto = "Vence: ${timeFormat.format(Date(dueDateMillis))}"
+            val fechaHoraTexto = if (assignment.dueDate > 0) {
+                "Vence: ${timeFormat.format(Date(dueDateMillis))}"
+            } else {
+                "Sin fecha de entrega"
+            }
 
-            if (diff < 0) {
+            if (assignment.dueDate <= 0) {
+                tvDate.text = fechaHoraTexto
+                tvDate.setTextColor(Color.parseColor("#666666"))
+            } else if (diff < 0) {
                 // A) ATRASADA (Ya pasó la fecha)
                 tvDate.text = "⚠ Atrasada ($fechaHoraTexto)"
                 tvDate.setTextColor(Color.RED)
