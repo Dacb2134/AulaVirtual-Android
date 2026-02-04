@@ -4,8 +4,6 @@ import com.practicas.aulavirtualapp.model.AssignmentResponse
 import com.practicas.aulavirtualapp.model.BadgeResponse
 import com.practicas.aulavirtualapp.model.Course
 import com.practicas.aulavirtualapp.model.CourseSection
-import com.practicas.aulavirtualapp.model.EnrolledUser
-import com.practicas.aulavirtualapp.model.GradeReportResponse
 import com.practicas.aulavirtualapp.model.SiteInfoResponse
 import com.practicas.aulavirtualapp.model.UserDetail
 import retrofit2.Call
@@ -60,23 +58,6 @@ interface MoodleApiService {
         @Query("wsfunction") function: String = "core_course_get_contents",
         @Query("moodlewsrestformat") format: String = "json"
     ): Call<List<CourseSection>>
-
-    @GET("webservice/rest/server.php")
-    fun getEnrolledUsers(
-        @Query("wstoken") token: String,
-        @Query("courseid") courseId: Int,
-        @Query("wsfunction") function: String = "core_enrol_get_enrolled_users",
-        @Query("moodlewsrestformat") format: String = "json"
-    ): Call<List<EnrolledUser>>
-
-    @GET("webservice/rest/server.php")
-    fun getGradeReport(
-        @Query("wstoken") token: String,
-        @Query("courseid") courseId: Int,
-        @Query("userid") userId: Int,
-        @Query("wsfunction") function: String = "gradereport_user_get_grade_items",
-        @Query("moodlewsrestformat") format: String = "json"
-    ): Call<GradeReportResponse>
 
     @GET("webservice/rest/server.php")
     fun getUserBadges(

@@ -46,9 +46,6 @@ class CourseAssignmentsFragment : Fragment() {
         if (!token.isNullOrBlank() && courseId != 0) {
             pbLoading.visibility = View.VISIBLE
             viewModel.loadAssignments(token, courseId)
-        } else {
-            pbLoading.visibility = View.GONE
-            tvEmpty.visibility = View.VISIBLE
         }
 
         viewModel.assignments.observe(viewLifecycleOwner) { assignments ->
@@ -64,7 +61,7 @@ class CourseAssignmentsFragment : Fragment() {
 
         viewModel.message.observe(viewLifecycleOwner) { message ->
             pbLoading.visibility = View.GONE
-            context?.let { Toast.makeText(it, message, Toast.LENGTH_LONG).show() }
+            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
         }
     }
 }
