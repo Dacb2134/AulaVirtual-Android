@@ -50,12 +50,13 @@ class CourseAssignmentsFragment : Fragment() {
 
         viewModel.assignments.observe(viewLifecycleOwner) { assignments ->
             pbLoading.visibility = View.GONE
-            if (assignments.isEmpty()) {
+            val safeAssignments = assignments ?: emptyList()
+            if (safeAssignments.isEmpty()) {
                 tvEmpty.visibility = View.VISIBLE
                 adapter.updateData(emptyList())
             } else {
                 tvEmpty.visibility = View.GONE
-                adapter.updateData(assignments)
+                adapter.updateData(safeAssignments)
             }
         }
 
