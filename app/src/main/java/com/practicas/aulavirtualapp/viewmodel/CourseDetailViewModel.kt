@@ -1,6 +1,6 @@
 package com.practicas.aulavirtualapp.viewmodel
 
-import android.util.Log // 👈 Importante: Esto nos permite imprimir mensajes en la consola
+import android.util.Log
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.practicas.aulavirtualapp.model.Assignment
@@ -13,55 +13,54 @@ import retrofit2.Response
 class CourseDetailViewModel : ViewModel() {
     private val repository = AuthRepository()
 
-    // LiveData para avisar a la pantalla cuando lleguen las tareas
+    // LiveData UI
     val assignments = MutableLiveData<List<Assignment>>(emptyList())
     val message = MutableLiveData<String>()
+    val isLoading = MutableLiveData<Boolean>(false) // Necesario para el Zorro
 
     private var lastCourseId: Int? = null
 
     fun loadAssignments(token: String, courseId: Int, forceRefresh: Boolean = false) {
-        if (!forceRefresh && lastCourseId == courseId && assignments.value != null) return
+        if (!forceRefresh && lastCourseId == courseId && assignments.value?.isNotEmpty() == true) return
+
         lastCourseId = courseId
+        isLoading.value = true // Mostrar Zorro
 
-        Log.d("MI_APP", "Pidiendo tareas a Moodle... Token: $token, CourseID: $courseId")
+        Log.d("MI_APP", "Solicitando tareas... CourseID: $courseId")
 
-        // Llamamos a Moodle
         repository.getAssignments(token, courseId).enqueue(object : Callback<AssignmentResponse> {
             override fun onResponse(call: Call<AssignmentResponse>, response: Response<AssignmentResponse>) {
+                isLoading.value = false // Ocultar Zorro
+
                 if (response.isSuccessful) {
-                    val respuestaMoodle = response.body()
+                    val body = response.body()
+                    val cursos = body?.courses.orEmpty()
 
-                    // 🕵️‍♂️ LOGS ESPIAS: Busca "MI_APP" en el Logcat para ver esto
-                    Log.d("MI_APP", "Respuesta recibida: $respuestaMoodle")
+                    // ESTRATEGIA SEGURA:
+                    // 1. Buscamos por ID exacto
+                    // 2. Si no, tomamos el primero que venga (porque Moodle suele devolver solo el que pediste)
+                    val cursoEncontrado = cursos.find { it.id == courseId } ?: cursos.firstOrNull()
 
-                    val cursos = respuestaMoodle?.courses.orEmpty()
-                    // Buscamos si Moodle nos devolvió datos para este curso específico
-                    val cursoEncontrado = cursos.find { it.courseId == courseId } ?: cursos.firstOrNull()
-                    val tareas = cursoEncontrado?.assignments
-                        ?: cursos.flatMap { it.assignments }
+                    val listaTareas = cursoEncontrado?.assignments ?: emptyList()
 
-                    if (tareas.isNotEmpty()) {
-                        Log.d("MI_APP", "¡Tareas encontradas! Total: ${tareas.size}.")
-                        assignments.value = tareas.sortedBy { it.dueDate ?: 0L }
+                    if (listaTareas.isNotEmpty()) {
+                        Log.d("MI_APP", "¡Éxito! Tareas cargadas: ${listaTareas.size}")
+                        assignments.value = listaTareas.sortedBy { it.dueDate ?: 0L }
                     } else {
-                        if (cursos.isEmpty()) {
-                            Log.d("MI_APP", "La respuesta de Moodle no trajo cursos.")
-                        } else {
-                            Log.d("MI_APP", "El curso ID $courseId no vino en la respuesta de Moodle.")
-                        }
+                        Log.d("MI_APP", "El curso vino sin tareas.")
                         assignments.value = emptyList()
-                        message.value = "No hay tareas pendientes 🎉"
                     }
                 } else {
-                    Log.e("MI_APP", "Error del servidor: Código ${response.code()}")
-                    message.value = "Error al cargar tareas: ${response.code()}"
+                    Log.e("MI_APP", "Error HTTP: ${response.code()}")
+                    message.value = "Error al cargar: ${response.code()}"
                     assignments.value = emptyList()
                 }
             }
 
             override fun onFailure(call: Call<AssignmentResponse>, t: Throwable) {
-                Log.e("MI_APP", "Fallo de conexión crítico: ${t.message}")
-                message.value = "Fallo de conexión: ${t.message}"
+                isLoading.value = false
+                Log.e("MI_APP", "Error red: ${t.message}")
+                message.value = "Fallo de conexión"
                 assignments.value = emptyList()
             }
         })
