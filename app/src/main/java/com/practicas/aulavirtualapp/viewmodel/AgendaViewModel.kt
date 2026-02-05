@@ -3,58 +3,51 @@ package com.practicas.aulavirtualapp.viewmodel
 import android.util.Log
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import com.practicas.aulavirtualapp.ColorGenerator
 import com.practicas.aulavirtualapp.model.Assignment
 import com.practicas.aulavirtualapp.model.AssignmentResponse
 import com.practicas.aulavirtualapp.model.Course
 import com.practicas.aulavirtualapp.repository.AuthRepository
+import com.practicas.aulavirtualapp.model.SubmissionStatusResponse
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import java.util.concurrent.atomic.AtomicInteger
 
+
+// Clase para agrupar los totales de los filtros
+data class AgendaCounts(val all: Int, val next7Days: Int, val overdue: Int)
+
 class AgendaViewModel : ViewModel() {
 
     private val repository = AuthRepository()
-
-    // 1. Guardamos la lista MAESTRA
     private var listaCompleta: List<Assignment> = emptyList()
+    private var completedIds: Set<String> = emptySet()
 
     val agenda = MutableLiveData<List<Assignment>>()
     val mensaje = MutableLiveData<String>()
     val cargando = MutableLiveData<Boolean>()
+    val conteos = MutableLiveData<AgendaCounts>()
 
-    // --- CARGA DE DATOS ---
-
-    fun cargarAgendaGlobal(token: String, userId: Int) {
+    fun cargarAgendaGlobal(token: String, userId: Int, completedIds: Set<String>) {
+        this.completedIds = completedIds
         cargando.value = true
-
-        // 🕵️‍♂️ LOG INICIO
-        Log.e("AGENDA_DEBUG", "==================================================")
-        Log.d("AGENDA_DEBUG", "1. INICIANDO CARGA GLOBAL (UserID: $userId)")
 
         repository.getUserCourses(token, userId).enqueue(object : Callback<List<Course>> {
             override fun onResponse(call: Call<List<Course>>, response: Response<List<Course>>) {
                 if (response.isSuccessful && response.body() != null) {
                     val cursos = response.body()!!
-                    Log.d("AGENDA_DEBUG", "2. CURSOS RECIBIDOS: ${cursos.size}")
-
-                    val colores = listOf("#FF5722", "#4CAF50", "#2196F3", "#9C27B0", "#E91E63", "#FF9800")
                     cursos.forEachIndexed { index, curso ->
-                        curso.color = colores[index % colores.size]
-                        // 🛠️ CORRECCIÓN AQUÍ: Usamos fullName (camelCase)
-                        Log.d("AGENDA_DEBUG", "   -> Curso detectado: [ID: ${curso.id}] ${curso.fullName}")
+                        curso.color = ColorGenerator.getIconColorHex(index)
                     }
-
                     traerTareasDeTodosLosCursos(token, cursos)
                 } else {
-                    Log.e("AGENDA_DEBUG", "ERROR AL OBTENER CURSOS: ${response.code()}")
                     cargando.value = false
                     mensaje.value = "Error al obtener cursos"
                 }
             }
 
             override fun onFailure(call: Call<List<Course>>, t: Throwable) {
-                Log.e("AGENDA_DEBUG", "FALLO DE RED (CURSOS): ${t.message}")
                 cargando.value = false
                 mensaje.value = "Error de red: ${t.message}"
             }
@@ -71,42 +64,53 @@ class AgendaViewModel : ViewModel() {
             return
         }
 
-        Log.d("AGENDA_DEBUG", "3. SOLICITANDO TAREAS A ${cursos.size} CURSOS...")
-
         for (curso in cursos) {
             repository.getAssignments(token, curso.id).enqueue(object : Callback<AssignmentResponse> {
                 override fun onResponse(call: Call<AssignmentResponse>, response: Response<AssignmentResponse>) {
                     if (response.isSuccessful) {
-                        val body = response.body()
+                        val cursoData = response.body()?.courses?.find { it.id == curso.id }
+                            ?: response.body()?.courses?.firstOrNull()
 
-                        // Buscamos el curso por ID o tomamos el primero
-                        val cursoData = body?.courses?.find { it.id == curso.id }
-                            ?: body?.courses?.firstOrNull()
+                        val tareasMoodle = cursoData?.assignments ?: emptyList()
 
-                        val tareasEncontradas = cursoData?.assignments ?: emptyList()
-
-                        Log.v("AGENDA_DEBUG", "   -> Curso [ID ${curso.id}]: ${tareasEncontradas.size} tareas.")
-
-                        tareasEncontradas.forEach { tarea ->
-                            // 🛠️ CORRECCIÓN AQUÍ TAMBIÉN: fullName
+                        tareasMoodle.forEach { tarea ->
                             tarea.courseName = curso.fullName ?: "Curso sin nombre"
                             tarea.courseColor = curso.color ?: "#6200EE"
-                            listaTotalTareas.add(tarea)
+
+                            // 🕵️‍♂️ Análisis de Sincronización Real
+                            val estaHechaLocal = completedIds.contains(tarea.id.toString())
+
+                            if (estaHechaLocal) {
+                                // Si la app cree que está hecha, verificamos con Moodle su estado real
+                                repository.getSubmissionStatus(token, tarea.id).enqueue(object : Callback<SubmissionStatusResponse> {
+                                    override fun onResponse(call: Call<SubmissionStatusResponse>, res: Response<SubmissionStatusResponse>) {
+                                        val status = res.body()?.lastAttempt?.submission?.status
+
+                                        // Si status es null o "new", el profesor borró la entrega
+                                        if (status == null || status == "new") {
+                                            // 🛠️ ACTUALIZACIÓN DE CACHÉ: Ya no está hecha
+                                            // Aquí necesitarás pasar el context al ViewModel o manejar un evento para limpiar el store
+                                            listaTotalTareas.add(tarea) // La volvemos a meter a la lista de pendientes
+                                        }
+
+                                        if (cursosPendientes.decrementAndGet() == 0) finalizarCarga(listaTotalTareas)
+                                    }
+                                    override fun onFailure(call: Call<SubmissionStatusResponse>, t: Throwable) {
+                                        if (cursosPendientes.decrementAndGet() == 0) finalizarCarga(listaTotalTareas)
+                                    }
+                                })
+                            } else {
+                                // Si no está hecha localmente, va directo a la lista de la Agenda
+                                listaTotalTareas.add(tarea)
+                                if (cursosPendientes.decrementAndGet() == 0) finalizarCarga(listaTotalTareas)
+                            }
                         }
                     } else {
-                        Log.e("AGENDA_DEBUG", "   -> ERROR HTTP Curso ${curso.id}: ${response.code()}")
-                    }
-
-                    if (cursosPendientes.decrementAndGet() == 0) {
-                        finalizarCarga(listaTotalTareas)
+                        if (cursosPendientes.decrementAndGet() == 0) finalizarCarga(listaTotalTareas)
                     }
                 }
-
                 override fun onFailure(call: Call<AssignmentResponse>, t: Throwable) {
-                    Log.e("AGENDA_DEBUG", "   -> FALLO RED Curso ${curso.id}: ${t.message}")
-                    if (cursosPendientes.decrementAndGet() == 0) {
-                        finalizarCarga(listaTotalTareas)
-                    }
+                    if (cursosPendientes.decrementAndGet() == 0) finalizarCarga(listaTotalTareas)
                 }
             })
         }
@@ -114,38 +118,36 @@ class AgendaViewModel : ViewModel() {
 
     private fun finalizarCarga(tareas: MutableList<Assignment>) {
         cargando.value = false
-        Log.d("AGENDA_DEBUG", "4. CARGA FINALIZADA. Total: ${tareas.size}")
-
         listaCompleta = tareas.sortedBy { it.dueDate ?: 0L }
 
+        // 📈 Cálculo de Conteos
+        val hoy = System.currentTimeMillis()
+        val sieteDias = hoy + (7L * 24 * 60 * 60 * 1000)
+
+        val total = listaCompleta.size
+        val proximos = listaCompleta.count { (it.dueDate ?: 0L) * 1000 in hoy..sieteDias }
+        val atrasadas = listaCompleta.count { (it.dueDate ?: 0L) > 0 && (it.dueDate ?: 0L) * 1000 < hoy }
+
+        conteos.value = AgendaCounts(total, proximos, atrasadas)
+
         if (listaCompleta.isEmpty()) {
-            Log.w("AGENDA_DEBUG", "   -> La lista final quedó vacía.")
-            mensaje.value = "¡Todo al día! No hay tareas."
+            mensaje.value = "¡Todo al día! No hay tareas pendientes."
             agenda.value = emptyList()
         } else {
             filtrarTodas()
         }
     }
 
-    // --- FILTROS ---
     fun filtrarTodas() { agenda.value = listaCompleta }
 
     fun filtrarProximos7Dias() {
         val hoy = System.currentTimeMillis()
         val sieteDias = hoy + (7L * 24 * 60 * 60 * 1000)
-        val filtradas = listaCompleta.filter {
-            val fechaVencimiento = (it.dueDate ?: 0L) * 1000
-            fechaVencimiento in hoy..sieteDias
-        }
-        agenda.value = filtradas
+        agenda.value = listaCompleta.filter { (it.dueDate ?: 0L) * 1000 in hoy..sieteDias }
     }
 
     fun filtrarAtrasadas() {
         val hoy = System.currentTimeMillis()
-        val filtradas = listaCompleta.filter {
-            val fechaVencimiento = (it.dueDate ?: 0L) * 1000
-            (it.dueDate ?: 0L) > 0 && fechaVencimiento < hoy
-        }
-        agenda.value = filtradas
+        agenda.value = listaCompleta.filter { (it.dueDate ?: 0L) > 0 && (it.dueDate ?: 0L) * 1000 < hoy }
     }
 }

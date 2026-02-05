@@ -10,6 +10,7 @@ import com.practicas.aulavirtualapp.model.MoodleUploadFile
 import com.practicas.aulavirtualapp.model.OAuthTokenResponse
 import com.practicas.aulavirtualapp.model.SaveSubmissionResponse
 import com.practicas.aulavirtualapp.model.SiteInfoResponse
+import com.practicas.aulavirtualapp.model.SubmissionStatusResponse
 import com.practicas.aulavirtualapp.model.UserDetail
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
@@ -79,20 +80,31 @@ interface MoodleApiService {
         @Part file: MultipartBody.Part
     ): Call<List<MoodleUploadFile>>
 
-    // 👇 AQUÍ ESTÁ LA CORRECCIÓN CLAVE
     @FormUrlEncoded
     @POST("webservice/rest/server.php")
     fun saveAssignmentSubmission(
         @Field("wstoken") token: String,
         @Field("wsfunction") function: String = "mod_assign_save_submission",
         @Field("moodlewsrestformat") format: String = "json",
+
         @Field("assignmentid") assignmentId: Int,
+
+        // TEXTO EN LÍNEA (OBLIGATORIO itemid)
         @Field("plugindata[onlinetext_editor][text]") text: String? = null,
-        // ANTES: textFormat: Int? = 1  <-- Esto enviaba basura
-        // AHORA: textFormat: Int? = null <-- Esto es limpio
         @Field("plugindata[onlinetext_editor][format]") textFormat: Int? = null,
+        @Field("plugindata[onlinetext_editor][itemid]") textItemId: Int? = null,
+
+        //ARCHIVOS
         @Field("plugindata[files_filemanager]") fileManagerId: Int? = null
     ): Call<SaveSubmissionResponse>
+
+
+    @GET("webservice/rest/server.php?moodlewsrestformat=json&wsfunction=mod_assign_get_submission_status")
+    fun getSubmissionStatus(
+        @Query("wstoken") token: String,
+        @Query("assignid") assignmentId: Int
+    ): Call<SubmissionStatusResponse>
+
 
     @GET("webservice/rest/server.php")
     fun getCourseContents(

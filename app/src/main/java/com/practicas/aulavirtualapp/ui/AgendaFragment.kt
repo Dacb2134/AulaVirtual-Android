@@ -1,5 +1,7 @@
 package com.practicas.aulavirtualapp.ui
 
+import android.app.Activity
+import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -7,14 +9,17 @@ import android.view.ViewGroup
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import com.practicas.aulavirtualapp.R
 import com.practicas.aulavirtualapp.adapter.AssignmentAdapter
+import com.practicas.aulavirtualapp.utils.AssignmentProgressStore
 import com.practicas.aulavirtualapp.utils.setupBrandColors
 import com.practicas.aulavirtualapp.viewmodel.AgendaViewModel
 
@@ -24,12 +29,18 @@ class AgendaFragment : Fragment() {
     private lateinit var viewModel: AgendaViewModel
     private var isUserRefreshing = false
 
+    private val startDetailForResult = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            ejecutarCarga()
+        }
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
-        return inflater.inflate(R.layout.fragment_agenda, container, false)
-    }
+    ): View? = inflater.inflate(R.layout.fragment_agenda, container, false)
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -38,38 +49,59 @@ class AgendaFragment : Fragment() {
         val pbLoading = view.findViewById<ProgressBar>(R.id.pbLoadingAgenda)
         val tvEmpty = view.findViewById<TextView>(R.id.tvEmptyAgenda)
         val chipGroup = view.findViewById<ChipGroup>(R.id.chipGroupFilters)
-
-        // NUEVO: Referencia Swipe
         val swipeRefresh = view.findViewById<SwipeRefreshLayout>(R.id.swipeRefreshAgenda)
+
+        val chipAll = view.findViewById<Chip>(R.id.chipAll)
+        val chipNext = view.findViewById<Chip>(R.id.chipNext7Days)
+        val chipOverdue = view.findViewById<Chip>(R.id.chipOverdue)
+
         swipeRefresh.setupBrandColors()
-
-        val token = requireActivity().intent.getStringExtra("USER_TOKEN") ?: ""
-        val userId = requireActivity().intent.getIntExtra("USER_ID", 0)
-
         rvAgenda.layoutManager = LinearLayoutManager(context)
+
         adapter = AssignmentAdapter(showCourseName = true) { assignment ->
+            val token = requireActivity().intent.getStringExtra("USER_TOKEN") ?: ""
             val intent = AssignmentDetailActivity.createIntent(
-                requireContext(),
-                assignment,
-                assignment.courseName,
-                0,
-                token
+                context = requireContext(),
+                assignment = assignment,
+                fallbackCourseName = assignment.courseName,
+                fallbackCourseColor = try { Color.parseColor(assignment.courseColor) } catch (e: Exception) { 0 },
+                userToken = token
             )
-            startActivity(intent)
+            startDetailForResult.launch(intent)
         }
         rvAgenda.adapter = adapter
 
         viewModel = ViewModelProvider(this)[AgendaViewModel::class.java]
 
-        // NUEVO: Listener Swipe
-        swipeRefresh.setOnRefreshListener {
-            if (token.isNotEmpty()) {
-                isUserRefreshing = true
-                viewModel.cargarAgendaGlobal(token, userId)
-            } else {
-                swipeRefresh.isRefreshing = false
+        // 🟢 OBSERVADOR DE CONTADORES ACTUALIZADO
+        viewModel.conteos.observe(viewLifecycleOwner) { counts ->
+            chipAll.text = "Todas (${counts.all})"
+            chipNext.text = "Próximos 7 días (${counts.next7Days})"
+            chipOverdue.text = "⚠ Atrasadas (${counts.overdue})"
+
+            // 🔥 FIX: Los mantenemos siempre VISIBLES para que el scroll horizontal no se rompa
+            chipAll.visibility = View.VISIBLE
+            chipNext.visibility = View.VISIBLE
+            chipOverdue.visibility = View.VISIBLE
+        }
+
+        viewModel.cargando.observe(viewLifecycleOwner) { estaCargando ->
+            swipeRefresh.isRefreshing = isUserRefreshing && estaCargando
+            pbLoading.visibility = if (estaCargando && !isUserRefreshing) View.VISIBLE else View.GONE
+            if (!estaCargando) {
+                rvAgenda.visibility = View.VISIBLE
                 isUserRefreshing = false
             }
+        }
+
+        viewModel.agenda.observe(viewLifecycleOwner) { tareas ->
+            adapter.updateData(tareas)
+            tvEmpty.visibility = if (tareas.isEmpty()) View.VISIBLE else View.GONE
+        }
+
+        swipeRefresh.setOnRefreshListener {
+            isUserRefreshing = true
+            ejecutarCarga()
         }
 
         chipGroup.setOnCheckedStateChangeListener { _, checkedIds ->
@@ -82,57 +114,16 @@ class AgendaFragment : Fragment() {
             }
         }
 
-        viewModel.cargando.observe(viewLifecycleOwner) { estaCargando ->
-            // 1. Controlamos la bolita de arriba (Swipe)
-            swipeRefresh.isRefreshing = isUserRefreshing && estaCargando
+        ejecutarCarga()
+    }
 
-            // 2. Controlamos el Zorro del centro
-            if (estaCargando && !isUserRefreshing) {
-                // Si carga y NO estamos jalando el dedo -> MUESTRA ZORRO
-                pbLoading.visibility = View.VISIBLE
-
-                // Ocultamos la lista y el texto vacío para que solo se vea el zorro
-                rvAgenda.visibility = View.GONE
-                tvEmpty.visibility = View.GONE
-            } else {
-                // Si terminó de cargar O estamos haciendo swipe -> OCULTA ZORRO
-                pbLoading.visibility = View.GONE
-
-                // Mostramos la lista si ya hay datos
-                if (!estaCargando) rvAgenda.visibility = View.VISIBLE
-            }
-
-            if (!estaCargando) {
-                isUserRefreshing = false
-            }
-        }
-
-
-        viewModel.agenda.observe(viewLifecycleOwner) { tareas ->
-            if (tareas.isNotEmpty()) {
-                adapter.updateData(tareas)
-                tvEmpty.visibility = View.GONE
-            } else {
-                tvEmpty.text = "No se encontraron tareas con este filtro."
-                tvEmpty.visibility = View.VISIBLE
-                adapter.updateData(emptyList())
-            }
-        }
-
-        viewModel.mensaje.observe(viewLifecycleOwner) { texto ->
-            if (texto.contains("Error") || texto.contains("Fallo")) {
-                Toast.makeText(context, texto, Toast.LENGTH_SHORT).show()
-            } else if (texto.contains("No tienes cursos") || texto.contains("Todo al día")) {
-                tvEmpty.text = texto
-                tvEmpty.visibility = View.VISIBLE
-            }
-        }
+    private fun ejecutarCarga() {
+        val token = requireActivity().intent.getStringExtra("USER_TOKEN") ?: ""
+        val userId = requireActivity().intent.getIntExtra("USER_ID", 0)
 
         if (token.isNotEmpty()) {
-            viewModel.cargarAgendaGlobal(token, userId)
-        } else {
-            tvEmpty.text = "Error: Sesión no válida."
-            tvEmpty.visibility = View.VISIBLE
+            val completedIds = AssignmentProgressStore.getCompleted(requireContext())
+            viewModel.cargarAgendaGlobal(token, userId, completedIds)
         }
     }
 }

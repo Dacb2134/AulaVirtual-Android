@@ -12,6 +12,7 @@ import com.practicas.aulavirtualapp.model.MoodleUploadFile
 import com.practicas.aulavirtualapp.model.OAuthTokenResponse
 import com.practicas.aulavirtualapp.model.SaveSubmissionResponse
 import com.practicas.aulavirtualapp.model.SiteInfoResponse
+import com.practicas.aulavirtualapp.model.SubmissionStatusResponse
 import com.practicas.aulavirtualapp.model.UserDetail
 import com.practicas.aulavirtualapp.network.PrivateFilesInfo
 import com.practicas.aulavirtualapp.network.RetrofitClient
@@ -66,6 +67,9 @@ class AuthRepository {
     fun getFilesInfo(token: String, userId: Int): Call<PrivateFilesInfo> {
         return apiService.getFilesInfo(token, userId)
     }
+    fun getSubmissionStatus(token: String, assignmentId: Int): Call<SubmissionStatusResponse> {
+        return apiService.getSubmissionStatus(token, assignmentId)
+    }
 
     fun uploadAssignmentFile(
         token: RequestBody,
@@ -84,17 +88,19 @@ class AuthRepository {
         fileManagerId: Int?
     ): Call<SaveSubmissionResponse> {
 
-        // Si el texto está vacío, lo forzamos a null.
-        // Si el texto es null, el formato TAMBIÉN debe ser null.
         val finalText = if (text.isNullOrBlank()) null else text
-        val finalFormat = if (finalText == null) null else 1 // 1 = HTML
+        val finalFormat = if (finalText == null) null else 1 // HTML
+        val finalItemId = if (finalText == null) null else 0 // 👈 OBLIGATORIO PARA MOODLE
 
         return apiService.saveAssignmentSubmission(
             token = token,
             assignmentId = assignmentId,
             text = finalText,
-            textFormat = finalFormat, // Enviamos el formato condicional
+            textFormat = finalFormat,
+            textItemId = finalItemId,
             fileManagerId = fileManagerId
         )
     }
+
+
 }

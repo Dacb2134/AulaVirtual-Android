@@ -2,48 +2,90 @@ package com.practicas.aulavirtualapp.model
 
 import com.google.gson.annotations.SerializedName
 
-// 1. Respuesta General
+// ===============================
+// RESPUESTA GENERAL DE MOODLE
+// ===============================
 data class AssignmentResponse(
-    @SerializedName("courses") val courses: List<CourseAssignments> = emptyList()
+    @SerializedName("courses")
+    val courses: List<CourseAssignments> = emptyList()
 )
 
-// 2. El Contenedor del Curso (VOLVEMOS A TU ESTRUCTURA QUE FUNCIONABA)
+// ===============================
+// CONTENEDOR DEL CURSO
+// ===============================
 data class CourseAssignments(
-    // 🟢 CLAVE DEL ÉXITO: Moodle manda "id", nosotros lo guardamos como "id" (o courseId, pero usemos id para estandarizar)
-    @SerializedName("id") val id: Int,
-    @SerializedName("fullname") val fullname: String? = "",
-    @SerializedName("shortname") val shortname: String? = "",
-    @SerializedName("assignments") val assignments: List<Assignment> = emptyList()
+
+    @SerializedName("id")
+    val id: Int,
+
+    @SerializedName("fullname")
+    val fullname: String? = "",
+
+    @SerializedName("shortname")
+    val shortname: String? = "",
+
+    @SerializedName("assignments")
+    val assignments: List<Assignment> = emptyList()
 )
 
-// 3. Configuración (Necesaria para que no falle al leer detalles)
+// ===============================
+// CONFIGURACIÓN DEL ASSIGNMENT
+// ===============================
 data class AssignmentConfig(
-    @SerializedName("plugin") val plugin: String? = null,
-    @SerializedName("subtype") val subtype: String? = null,
-    @SerializedName("name") val name: String? = null,
-    @SerializedName("value") val value: String? = null
+
+    @SerializedName("plugin")
+    val plugin: String? = null,
+
+    @SerializedName("subtype")
+    val subtype: String? = null,
+
+    @SerializedName("name")
+    val name: String? = null,
+
+    @SerializedName("value")
+    val value: String? = null
 )
 
-// 4. La Tarea Individual (HÍBRIDO: Estructura vieja + Seguridad nueva)
+// ===============================
+// ASSIGNMENT (TAREA)
+// ===============================
 data class Assignment(
-    @SerializedName("id") val id: Int,
-    @SerializedName("cmid") val courseModuleId: Int? = null,
-    @SerializedName("name") val name: String,
 
-    // 🟢 Mantenemos Long? (nullable) porque si Moodle manda null, tu app vieja crashearía. Esto es más seguro.
-    @SerializedName("duedate") val dueDate: Long? = 0L,
+    @SerializedName("id")
+    val id: Int,
 
-    @SerializedName("intro") val description: String? = null,
-    @SerializedName("grade") val grade: Int? = null,
+    @SerializedName("cmid")
+    val courseModuleId: Int? = null,
 
-    // Campos necesarios para Detalle (No los borres, los necesitas)
-    @SerializedName("allowsubmissionsfromdate") val allowSubmissionsFromDate: Long? = null,
-    @SerializedName("cutoffdate") val cutoffDate: Long? = null,
-    @SerializedName("gradingduedate") val gradingDueDate: Long? = null,
-    @SerializedName("maxattempts") val maxAttempts: Int? = null,
-    @SerializedName("configs") val configs: List<AssignmentConfig> = emptyList(),
+    @SerializedName("name")
+    val name: String,
 
-    // Variables extras para tu UI (Colores y Nombres)
+    // Moodle a veces manda null → NO crashea
+    @SerializedName("duedate")
+    val dueDate: Long? = null,
+
+    @SerializedName("intro")
+    val description: String? = null,
+
+    @SerializedName("grade")
+    val grade: Int? = null,
+
+    @SerializedName("allowsubmissionsfromdate")
+    val allowSubmissionsFromDate: Long? = null,
+
+    @SerializedName("cutoffdate")
+    val cutoffDate: Long? = null,
+
+    @SerializedName("gradingduedate")
+    val gradingDueDate: Long? = null,
+
+    @SerializedName("maxattempts")
+    val maxAttempts: Int? = null,
+
+    @SerializedName("configs")
+    val configs: List<AssignmentConfig> = emptyList(),
+
+
     var courseName: String = "",
     var courseColor: String = "#6200EE"
 )
