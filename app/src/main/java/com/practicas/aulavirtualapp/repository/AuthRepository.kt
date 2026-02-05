@@ -37,17 +37,13 @@ class AuthRepository {
 
     fun getUserCourses(token: String, userId: Int): Call<List<Course>> = apiService.getUserCourses(token, userId)
 
-    // En tu AuthRepository.kt ...
-
     fun getAssignments(token: String, courseId: Int): Call<AssignmentResponse> {
-
         val params = mapOf(
             "courseids[0]" to courseId.toString()
         )
-
-        // Usamos el método getCourseAssignments que ya configuramos con @QueryMap
         return apiService.getCourseAssignments(token, params)
     }
+
     fun getCourseContents(token: String, courseId: Int): Call<List<CourseSection>> =
         apiService.getCourseContents(token, courseId)
 
@@ -80,16 +76,24 @@ class AuthRepository {
         return apiService.uploadAssignmentFile(token, filepath, itemId, file)
     }
 
+    // 👇 AQUÍ ESTÁ LA LÓGICA INTELIGENTE
     fun saveAssignmentSubmission(
         token: String,
         assignmentId: Int,
         text: String?,
         fileManagerId: Int?
     ): Call<SaveSubmissionResponse> {
+
+        // Si el texto está vacío, lo forzamos a null.
+        // Si el texto es null, el formato TAMBIÉN debe ser null.
+        val finalText = if (text.isNullOrBlank()) null else text
+        val finalFormat = if (finalText == null) null else 1 // 1 = HTML
+
         return apiService.saveAssignmentSubmission(
             token = token,
             assignmentId = assignmentId,
-            text = text,
+            text = finalText,
+            textFormat = finalFormat, // Enviamos el formato condicional
             fileManagerId = fileManagerId
         )
     }

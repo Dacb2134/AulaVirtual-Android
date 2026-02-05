@@ -28,10 +28,9 @@ import com.practicas.aulavirtualapp.network.RetrofitClient
 import com.practicas.aulavirtualapp.repository.AuthRepository
 import com.practicas.aulavirtualapp.utils.AssignmentProgressStore
 import okhttp3.MultipartBody
-import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.RequestBody.Companion.toRequestBody
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -361,12 +360,23 @@ class AssignmentDetailActivity : AppCompatActivity() {
         onComplete: () -> Unit
     ) {
         val fileName = fileName(fileUri)
+
+        // 🕵️‍♂️ LOG INICIO
+        android.util.Log.d("UPLOAD_DEBUG", "--------------------------------------------------")
+        android.util.Log.d("UPLOAD_DEBUG", "1. INICIANDO SUBIDA DE ARCHIVO")
+        android.util.Log.d("UPLOAD_DEBUG", "   -> Archivo: $fileName")
+        android.util.Log.d("UPLOAD_DEBUG", "   -> URI: $fileUri")
+
         val mimeType = contentResolver.getType(fileUri) ?: "application/octet-stream"
         val fileBytes = contentResolver.openInputStream(fileUri)?.use { it.readBytes() }
+
         if (fileBytes == null) {
+            android.util.Log.e("UPLOAD_DEBUG", "   -> ERROR CRÍTICO: No se pudieron leer los bytes del archivo.")
             Toast.makeText(this, "No se pudo leer el archivo seleccionado.", Toast.LENGTH_LONG).show()
             onComplete()
             return
+        } else {
+            android.util.Log.d("UPLOAD_DEBUG", "   -> Archivo leído en memoria. Tamaño: ${fileBytes.size} bytes")
         }
 
         val textMediaType = "text/plain".toMediaType()
@@ -383,7 +393,10 @@ class AssignmentDetailActivity : AppCompatActivity() {
                     call: Call<List<MoodleUploadFile>>,
                     response: Response<List<MoodleUploadFile>>
                 ) {
+                    android.util.Log.d("UPLOAD_DEBUG", "2. RESPUESTA UPLOAD RECIBIDA (Código: ${response.code()})")
+
                     if (!response.isSuccessful) {
+                        android.util.Log.e("UPLOAD_DEBUG", "   -> ERROR HTTP UPLOAD: ${response.errorBody()?.string()}")
                         Toast.makeText(
                             this@AssignmentDetailActivity,
                             "Error al subir el archivo (${response.code()}).",
@@ -392,9 +405,15 @@ class AssignmentDetailActivity : AppCompatActivity() {
                         onComplete()
                         return
                     }
+
                     val uploaded = response.body().orEmpty()
+                    android.util.Log.d("UPLOAD_DEBUG", "   -> JSON Upload: $uploaded")
+
                     val itemId = uploaded.firstOrNull()?.itemId
+                    android.util.Log.d("UPLOAD_DEBUG", "   -> ITEMID OBTENIDO: $itemId")
+
                     if (itemId == null || itemId == 0) {
+                        android.util.Log.e("UPLOAD_DEBUG", "   -> ERROR: El itemId es nulo o 0. Moodle no guardó el borrador.")
                         Toast.makeText(
                             this@AssignmentDetailActivity,
                             "Moodle no devolvió el itemid del archivo.",
@@ -403,6 +422,7 @@ class AssignmentDetailActivity : AppCompatActivity() {
                         onComplete()
                         return
                     }
+
                     saveSubmission(
                         token = token,
                         assignmentId = assignmentId,
@@ -413,6 +433,7 @@ class AssignmentDetailActivity : AppCompatActivity() {
                 }
 
                 override fun onFailure(call: Call<List<MoodleUploadFile>>, t: Throwable) {
+                    android.util.Log.e("UPLOAD_DEBUG", "CRASH EN UPLOAD: ${t.message}")
                     Toast.makeText(
                         this@AssignmentDetailActivity,
                         "Error al subir archivo: ${t.localizedMessage}",
@@ -430,6 +451,11 @@ class AssignmentDetailActivity : AppCompatActivity() {
         fileManagerId: Int?,
         onComplete: () -> Unit
     ) {
+        android.util.Log.d("UPLOAD_DEBUG", "3. LLAMANDO A SAVE SUBMISSION")
+        android.util.Log.d("UPLOAD_DEBUG", "   -> Assignment ID: $assignmentId")
+        android.util.Log.d("UPLOAD_DEBUG", "   -> FileManager ID (Draft): $fileManagerId")
+        android.util.Log.d("UPLOAD_DEBUG", "   -> Texto: $text")
+
         authRepository.saveAssignmentSubmission(token, assignmentId, text, fileManagerId)
             .enqueue(object : Callback<SaveSubmissionResponse> {
                 override fun onResponse(
@@ -437,7 +463,10 @@ class AssignmentDetailActivity : AppCompatActivity() {
                     response: Response<SaveSubmissionResponse>
                 ) {
                     onComplete()
+                    android.util.Log.d("UPLOAD_DEBUG", "4. RESPUESTA SAVE SUBMISSION (Código: ${response.code()})")
+
                     if (!response.isSuccessful) {
+                        android.util.Log.e("UPLOAD_DEBUG", "   -> ERROR HTTP SAVE: ${response.errorBody()?.string()}")
                         Toast.makeText(
                             this@AssignmentDetailActivity,
                             "Error al enviar la entrega (${response.code()}).",
@@ -445,20 +474,32 @@ class AssignmentDetailActivity : AppCompatActivity() {
                         ).show()
                         return
                     }
+
                     val body = response.body()
-                    val warnings = body?.warnings?.joinToString(" · ") { it.message.orEmpty() }
-                    if (body?.status != true) {
+                    android.util.Log.d("UPLOAD_DEBUG", "   -> BODY COMPLETO: $body")
+
+                    val warningsList = body?.warnings ?: emptyList()
+                    val warnings = warningsList.joinToString(" · ") { it.message.orEmpty() }
+
+                    android.util.Log.d("UPLOAD_DEBUG", "   -> WARNINGS: $warnings")
+
+                    // 🏆 FIX APLICADO: Si status es true O si no hay warnings (y el código es 200), asumimos éxito.
+                    val esExitoso = (body?.status == true) || warningsList.isEmpty()
+
+                    if (!esExitoso) {
+                        android.util.Log.e("UPLOAD_DEBUG", "   -> FALLO: Status no es true y hay warnings.")
                         Toast.makeText(
                             this@AssignmentDetailActivity,
-                            "La entrega no pudo registrarse en Moodle.",
+                            "No se pudo guardar: $warnings",
                             Toast.LENGTH_LONG
                         ).show()
                         return
                     }
-                    if (!warnings.isNullOrBlank()) {
+
+                    if (warnings.isNotEmpty()) {
                         Toast.makeText(
                             this@AssignmentDetailActivity,
-                            "Entrega enviada con advertencias: $warnings",
+                            "Enviado con avisos: $warnings",
                             Toast.LENGTH_LONG
                         ).show()
                     } else {
@@ -474,6 +515,7 @@ class AssignmentDetailActivity : AppCompatActivity() {
 
                 override fun onFailure(call: Call<SaveSubmissionResponse>, t: Throwable) {
                     onComplete()
+                    android.util.Log.e("UPLOAD_DEBUG", "CRASH EN SAVE: ${t.message}")
                     Toast.makeText(
                         this@AssignmentDetailActivity,
                         "Error al enviar entrega: ${t.localizedMessage}",
@@ -545,30 +587,34 @@ class AssignmentDetailActivity : AppCompatActivity() {
         )
 
         private fun buildSubmissionInfo(assignment: Assignment): SubmissionInfo {
+            // Si configs está vacío, dejamos todo habilitado por seguridad (o podrías restringir).
             if (assignment.configs.isEmpty()) {
-                return SubmissionInfo(true, true, "")
+                return SubmissionInfo(allowFiles = true, allowText = true, fileExtensions = "")
             }
 
-            val allowFiles = isSubmissionEnabled(assignment.configs, "file")
-            val allowText = isSubmissionEnabled(assignment.configs, "onlinetext")
+            // 🕵️‍♂️ Lógica Estricta:
+            val allowFiles = isPluginEnabled(assignment.configs, "file")
+            val allowText = isPluginEnabled(assignment.configs, "onlinetext")
+
+            // 🚨 CAMBIO AQUÍ: Usamos "filetypeslist" porque así viene en tu JSON
             val fileExtensions = assignment.configs.firstOrNull {
                 it.subtype == "assignsubmission" &&
-                    it.plugin == "file" &&
-                    it.name == "fileextensions"
+                        it.plugin == "file" &&
+                        it.name == "filetypeslist"
             }?.value.orEmpty()
 
             return SubmissionInfo(allowFiles, allowText, fileExtensions)
         }
 
-        private fun isSubmissionEnabled(configs: List<AssignmentConfig>, plugin: String): Boolean {
-            val pluginConfigs = configs.filter {
-                it.subtype == "assignsubmission" && it.plugin == plugin
+        // 👇 FUNCIÓN CON LÓGICA ESTRICTA
+        private fun isPluginEnabled(configs: List<AssignmentConfig>, plugin: String): Boolean {
+            val config = configs.find {
+                it.subtype == "assignsubmission" &&
+                        it.plugin == plugin &&
+                        it.name == "enabled"
             }
-            if (pluginConfigs.isEmpty()) {
-                return true
-            }
-            val enabledValue = pluginConfigs.firstOrNull { it.name == "enabled" }?.value
-            return enabledValue?.trim() != "0"
+            // Solo si existe y es "1" devolvemos true. Si no existe (null), es false.
+            return config?.value == "1"
         }
     }
 }
