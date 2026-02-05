@@ -60,13 +60,14 @@ interface MoodleApiService {
         @Query("moodlewsrestformat") format: String = "json"
     ): Call<List<Course>>
 
-    @GET("webservice/rest/server.php")
+    @FormUrlEncoded
+    @POST("webservice/rest/server.php")
     fun getCourseAssignments(
-        @Query("wstoken") token: String,
-        @Query("courseids[0]") courseId: Int,
-        @Query("includeconfigs") includeConfigs: Int = 1,
-        @Query("wsfunction") function: String = "mod_assign_get_assignments",
-        @Query("moodlewsrestformat") format: String = "json"
+        @Field("wstoken") token: String,
+        @Field("courseids[0]") courseId: Int,
+        @Field("includeconfigs") includeConfigs: Int = 1,
+        @Field("wsfunction") function: String = "mod_assign_get_assignments",
+        @Field("moodlewsrestformat") format: String = "json"
     ): Call<AssignmentResponse>
 
     @Multipart

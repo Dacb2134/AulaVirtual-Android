@@ -51,7 +51,7 @@ class CourseDetailViewModel : ViewModel() {
                         assignments.value = emptyList()
                     }
                 } else {
-                    Log.e("MI_APP", "Error HTTP: ${response.code()}")
+                    Log.e("MI_APP", "Error HTTP: ${response.code()} ${response.errorBody()?.string().orEmpty()}")
                     message.value = "Error al cargar: ${response.code()}"
                     assignments.value = emptyList()
                 }
