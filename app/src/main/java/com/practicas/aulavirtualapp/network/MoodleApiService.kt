@@ -21,6 +21,7 @@ import retrofit2.http.Multipart
 import retrofit2.http.POST
 import retrofit2.http.Part
 import retrofit2.http.Query
+import retrofit2.http.QueryMap
 
 interface MoodleApiService {
 
@@ -60,16 +61,14 @@ interface MoodleApiService {
         @Query("moodlewsrestformat") format: String = "json"
     ): Call<List<Course>>
 
-    @FormUrlEncoded
-    @POST("webservice/rest/server.php")
-    fun getCourseAssignments(
-        @Field("wstoken") token: String,
-        @Field("courseids[0]") courseId: Int,
-        @Field("includeconfigs") includeConfigs: Int = 1,
-        @Field("wsfunction") function: String = "mod_assign_get_assignments",
-        @Field("moodlewsrestformat") format: String = "json"
-    ): Call<AssignmentResponse>
 
+    @GET("webservice/rest/server.php")
+    fun getCourseAssignments(
+        @Query("wstoken") token: String,
+        @QueryMap(encoded = true) params: Map<String, String>, // 👈 ¡ESTA ES LA MAGIA!
+        @Query("wsfunction") function: String = "mod_assign_get_assignments",
+        @Query("moodlewsrestformat") format: String = "json"
+    ): Call<AssignmentResponse>
     @Multipart
     @POST("webservice/upload.php")
     fun uploadAssignmentFile(

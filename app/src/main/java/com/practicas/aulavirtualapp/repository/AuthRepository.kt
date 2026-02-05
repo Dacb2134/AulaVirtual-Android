@@ -37,14 +37,22 @@ class AuthRepository {
 
     fun getUserCourses(token: String, userId: Int): Call<List<Course>> = apiService.getUserCourses(token, userId)
 
-    // ⚠️ IMPORTANTE: Mantenemos el nombre 'getAssignments' para no romper tu AgendaViewModel
-    fun getAssignments(token: String, courseId: Int): Call<AssignmentResponse> = apiService.getCourseAssignments(token, courseId)
+    // En tu AuthRepository.kt ...
 
+    fun getAssignments(token: String, courseId: Int): Call<AssignmentResponse> {
+
+        val params = mapOf(
+            "courseids[0]" to courseId.toString()
+        )
+
+        // Usamos el método getCourseAssignments que ya configuramos con @QueryMap
+        return apiService.getCourseAssignments(token, params)
+    }
     fun getCourseContents(token: String, courseId: Int): Call<List<CourseSection>> =
         apiService.getCourseContents(token, courseId)
 
-    // --- Perfil de Usuario (LA ACTUALIZACIÓN) ---
-    // 👇 AHORA devuelve Call<List<UserDetail>> para coincidir con el JSON [...] de Moodle
+    // --- Perfil de Usuario  ---
+
     fun getUserDetails(token: String, userId: Int): Call<List<UserDetail>> {
         Log.d("AuthRepository", "Pidiendo perfil (Lista) para ID: $userId")
         return apiService.getUserDetails(token = token, userId = userId)

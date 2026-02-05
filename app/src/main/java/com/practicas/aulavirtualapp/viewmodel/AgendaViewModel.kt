@@ -10,28 +10,129 @@ import com.practicas.aulavirtualapp.repository.AuthRepository
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import java.util.concurrent.atomic.AtomicInteger
 
 class AgendaViewModel : ViewModel() {
 
     private val repository = AuthRepository()
 
-    // 1. Guardamos la lista MAESTRA (privada) para poder filtrar sin perder datos
+    // 1. Guardamos la lista MAESTRA
     private var listaCompleta: List<Assignment> = emptyList()
 
     val agenda = MutableLiveData<List<Assignment>>()
     val mensaje = MutableLiveData<String>()
     val cargando = MutableLiveData<Boolean>()
 
-    // --- LÓGICA DE FILTROS ---
+    // --- CARGA DE DATOS ---
 
-    fun filtrarTodas() {
-        agenda.value = listaCompleta
+    fun cargarAgendaGlobal(token: String, userId: Int) {
+        cargando.value = true
+
+        // 🕵️‍♂️ LOG INICIO
+        Log.e("AGENDA_DEBUG", "==================================================")
+        Log.d("AGENDA_DEBUG", "1. INICIANDO CARGA GLOBAL (UserID: $userId)")
+
+        repository.getUserCourses(token, userId).enqueue(object : Callback<List<Course>> {
+            override fun onResponse(call: Call<List<Course>>, response: Response<List<Course>>) {
+                if (response.isSuccessful && response.body() != null) {
+                    val cursos = response.body()!!
+                    Log.d("AGENDA_DEBUG", "2. CURSOS RECIBIDOS: ${cursos.size}")
+
+                    val colores = listOf("#FF5722", "#4CAF50", "#2196F3", "#9C27B0", "#E91E63", "#FF9800")
+                    cursos.forEachIndexed { index, curso ->
+                        curso.color = colores[index % colores.size]
+                        // 🛠️ CORRECCIÓN AQUÍ: Usamos fullName (camelCase)
+                        Log.d("AGENDA_DEBUG", "   -> Curso detectado: [ID: ${curso.id}] ${curso.fullName}")
+                    }
+
+                    traerTareasDeTodosLosCursos(token, cursos)
+                } else {
+                    Log.e("AGENDA_DEBUG", "ERROR AL OBTENER CURSOS: ${response.code()}")
+                    cargando.value = false
+                    mensaje.value = "Error al obtener cursos"
+                }
+            }
+
+            override fun onFailure(call: Call<List<Course>>, t: Throwable) {
+                Log.e("AGENDA_DEBUG", "FALLO DE RED (CURSOS): ${t.message}")
+                cargando.value = false
+                mensaje.value = "Error de red: ${t.message}"
+            }
+        })
     }
+
+    private fun traerTareasDeTodosLosCursos(token: String, cursos: List<Course>) {
+        val listaTotalTareas = mutableListOf<Assignment>()
+        val cursosPendientes = AtomicInteger(cursos.size)
+
+        if (cursos.isEmpty()) {
+            cargando.value = false
+            mensaje.value = "No tienes cursos inscritos"
+            return
+        }
+
+        Log.d("AGENDA_DEBUG", "3. SOLICITANDO TAREAS A ${cursos.size} CURSOS...")
+
+        for (curso in cursos) {
+            repository.getAssignments(token, curso.id).enqueue(object : Callback<AssignmentResponse> {
+                override fun onResponse(call: Call<AssignmentResponse>, response: Response<AssignmentResponse>) {
+                    if (response.isSuccessful) {
+                        val body = response.body()
+
+                        // Buscamos el curso por ID o tomamos el primero
+                        val cursoData = body?.courses?.find { it.id == curso.id }
+                            ?: body?.courses?.firstOrNull()
+
+                        val tareasEncontradas = cursoData?.assignments ?: emptyList()
+
+                        Log.v("AGENDA_DEBUG", "   -> Curso [ID ${curso.id}]: ${tareasEncontradas.size} tareas.")
+
+                        tareasEncontradas.forEach { tarea ->
+                            // 🛠️ CORRECCIÓN AQUÍ TAMBIÉN: fullName
+                            tarea.courseName = curso.fullName ?: "Curso sin nombre"
+                            tarea.courseColor = curso.color ?: "#6200EE"
+                            listaTotalTareas.add(tarea)
+                        }
+                    } else {
+                        Log.e("AGENDA_DEBUG", "   -> ERROR HTTP Curso ${curso.id}: ${response.code()}")
+                    }
+
+                    if (cursosPendientes.decrementAndGet() == 0) {
+                        finalizarCarga(listaTotalTareas)
+                    }
+                }
+
+                override fun onFailure(call: Call<AssignmentResponse>, t: Throwable) {
+                    Log.e("AGENDA_DEBUG", "   -> FALLO RED Curso ${curso.id}: ${t.message}")
+                    if (cursosPendientes.decrementAndGet() == 0) {
+                        finalizarCarga(listaTotalTareas)
+                    }
+                }
+            })
+        }
+    }
+
+    private fun finalizarCarga(tareas: MutableList<Assignment>) {
+        cargando.value = false
+        Log.d("AGENDA_DEBUG", "4. CARGA FINALIZADA. Total: ${tareas.size}")
+
+        listaCompleta = tareas.sortedBy { it.dueDate ?: 0L }
+
+        if (listaCompleta.isEmpty()) {
+            Log.w("AGENDA_DEBUG", "   -> La lista final quedó vacía.")
+            mensaje.value = "¡Todo al día! No hay tareas."
+            agenda.value = emptyList()
+        } else {
+            filtrarTodas()
+        }
+    }
+
+    // --- FILTROS ---
+    fun filtrarTodas() { agenda.value = listaCompleta }
 
     fun filtrarProximos7Dias() {
         val hoy = System.currentTimeMillis()
-        val sieteDias = hoy + (7L * 24 * 60 * 60 * 1000) // 7 días en milisegundos
-
+        val sieteDias = hoy + (7L * 24 * 60 * 60 * 1000)
         val filtradas = listaCompleta.filter {
             val fechaVencimiento = (it.dueDate ?: 0L) * 1000
             fechaVencimiento in hoy..sieteDias
@@ -43,111 +144,8 @@ class AgendaViewModel : ViewModel() {
         val hoy = System.currentTimeMillis()
         val filtradas = listaCompleta.filter {
             val fechaVencimiento = (it.dueDate ?: 0L) * 1000
-            fechaVencimiento < hoy // Ya pasó
+            (it.dueDate ?: 0L) > 0 && fechaVencimiento < hoy
         }
         agenda.value = filtradas
-    }
-
-    // --- PREPARACIÓN PARA NOTIFICACIONES PUSH (Futuro) ---
-    private fun detectarTareasUrgentes(tareas: List<Assignment>) {
-        val hoy = System.currentTimeMillis()
-        val manana = hoy + (24 * 60 * 60 * 1000) // Próximas 24 horas
-
-        val tareasUrgentes = tareas.filter {
-            val vencimiento = (it.dueDate ?: 0L) * 1000
-            vencimiento in hoy..manana
-        }
-
-        if (tareasUrgentes.isNotEmpty()) {
-            // TODO: FUTURO -> Aquí llamaremos al WorkManager para lanzar la notificación
-            Log.d("NOTIFICACIONES", "¡Ojo! Hay ${tareasUrgentes.size} tareas que vencen en menos de 24h.")
-            // Ejemplo: NotificationHelper.mostrarAviso(tareasUrgentes.first())
-        }
-    }
-
-    // --- CARGA DE DATOS ---
-
-    fun cargarAgendaGlobal(token: String, userId: Int) {
-        cargando.value = true
-
-        repository.getUserCourses(token, userId).enqueue(object : Callback<List<Course>> {
-            override fun onResponse(call: Call<List<Course>>, response: Response<List<Course>>) {
-                if (response.isSuccessful && response.body() != null) {
-                    val cursos = response.body()!!
-
-                    val colores = listOf("#FF5722", "#4CAF50", "#2196F3", "#9C27B0", "#E91E63", "#FF9800")
-                    cursos.forEachIndexed { index, curso ->
-                        curso.color = colores[index % colores.size]
-                    }
-
-                    traerTareasDeTodosLosCursos(token, cursos)
-                } else {
-                    cargando.value = false
-                    mensaje.value = "Error al obtener cursos"
-                }
-            }
-
-            override fun onFailure(call: Call<List<Course>>, t: Throwable) {
-                cargando.value = false
-                mensaje.value = "Error de red: ${t.message}"
-            }
-        })
-    }
-
-    private fun traerTareasDeTodosLosCursos(token: String, cursos: List<Course>) {
-        val listaTotalTareas = mutableListOf<Assignment>()
-        var respuestasRecibidas = 0
-
-        if (cursos.isEmpty()) {
-            cargando.value = false
-            mensaje.value = "No tienes cursos inscritos"
-            return
-        }
-
-        for (curso in cursos) {
-            repository.getAssignments(token, curso.id).enqueue(object : Callback<AssignmentResponse> {
-                override fun onResponse(call: Call<AssignmentResponse>, response: Response<AssignmentResponse>) {
-                    if (response.isSuccessful) {
-                        response.body()?.courses?.forEach { cursoMoodle ->
-                            cursoMoodle.assignments.forEach { tarea ->
-                                tarea.courseName = curso.fullName
-                                tarea.courseColor = curso.color ?: "#6200EE"
-                                listaTotalTareas.add(tarea)
-                            }
-                        }
-                    } else {
-                        Log.e(
-                            "AgendaViewModel",
-                            "Error HTTP ${response.code()} al cargar tareas: ${response.errorBody()?.string().orEmpty()}"
-                        )
-                    }
-                    verificarSiTerminamos(cursos.size, ++respuestasRecibidas, listaTotalTareas)
-                }
-
-                override fun onFailure(call: Call<AssignmentResponse>, t: Throwable) {
-                    verificarSiTerminamos(cursos.size, ++respuestasRecibidas, listaTotalTareas)
-                }
-            })
-        }
-    }
-
-    private fun verificarSiTerminamos(totalCursos: Int, procesados: Int, tareas: MutableList<Assignment>) {
-        if (procesados == totalCursos) {
-            cargando.value = false
-
-            // Guardamos la LISTA MAESTRA ordenada
-            listaCompleta = tareas.sortedBy { it.dueDate ?: 0L }
-
-            //  Revisamos si hay tareas para notificar (Lógica futura)
-            detectarTareasUrgentes(listaCompleta)
-
-            if (listaCompleta.isEmpty()) {
-                mensaje.value = "¡Todo al día! No hay tareas pendientes."
-                agenda.value = emptyList()
-            } else {
-                // Por defecto mostramos TODAS al inicio
-                filtrarTodas()
-            }
-        }
     }
 }
