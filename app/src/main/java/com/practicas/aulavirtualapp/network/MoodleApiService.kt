@@ -65,10 +65,11 @@ interface MoodleApiService {
     @GET("webservice/rest/server.php")
     fun getCourseAssignments(
         @Query("wstoken") token: String,
-        @QueryMap(encoded = true) params: Map<String, String>, // 👈 ¡ESTA ES LA MAGIA!
+        @QueryMap(encoded = true) params: Map<String, String>,
         @Query("wsfunction") function: String = "mod_assign_get_assignments",
         @Query("moodlewsrestformat") format: String = "json"
     ): Call<AssignmentResponse>
+
     @Multipart
     @POST("webservice/upload.php")
     fun uploadAssignmentFile(
@@ -78,6 +79,7 @@ interface MoodleApiService {
         @Part file: MultipartBody.Part
     ): Call<List<MoodleUploadFile>>
 
+    // 👇 AQUÍ ESTÁ LA CORRECCIÓN CLAVE
     @FormUrlEncoded
     @POST("webservice/rest/server.php")
     fun saveAssignmentSubmission(
@@ -86,7 +88,9 @@ interface MoodleApiService {
         @Field("moodlewsrestformat") format: String = "json",
         @Field("assignmentid") assignmentId: Int,
         @Field("plugindata[onlinetext_editor][text]") text: String? = null,
-        @Field("plugindata[onlinetext_editor][format]") textFormat: Int? = 1,
+        // ANTES: textFormat: Int? = 1  <-- Esto enviaba basura
+        // AHORA: textFormat: Int? = null <-- Esto es limpio
+        @Field("plugindata[onlinetext_editor][format]") textFormat: Int? = null,
         @Field("plugindata[files_filemanager]") fileManagerId: Int? = null
     ): Call<SaveSubmissionResponse>
 
