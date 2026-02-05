@@ -11,7 +11,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.lang.reflect.Type
 
-// 🧙‍♂️ EL MAGO: Convierte la respuesta "rara" de Moodle ([]) en algo que la App entienda
+
 class MoodleSubmissionDeserializer : JsonDeserializer<SaveSubmissionResponse> {
     override fun deserialize(json: JsonElement, typeOfT: Type, context: JsonDeserializationContext): SaveSubmissionResponse {
         // CASO 1: Moodle devuelve [] (Array vacío). Significa "ÉXITO TOTAL".
