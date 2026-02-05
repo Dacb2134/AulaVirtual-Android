@@ -84,17 +84,18 @@ class AuthRepository {
         fileManagerId: Int?
     ): Call<SaveSubmissionResponse> {
 
-        // Si el texto está vacío, lo forzamos a null.
-        // Si el texto es null, el formato TAMBIÉN debe ser null.
         val finalText = if (text.isNullOrBlank()) null else text
-        val finalFormat = if (finalText == null) null else 1 // 1 = HTML
+        val finalFormat = if (finalText == null) null else 1 // HTML
+        val finalItemId = if (finalText == null) null else 0 // 👈 OBLIGATORIO PARA MOODLE
 
         return apiService.saveAssignmentSubmission(
             token = token,
             assignmentId = assignmentId,
             text = finalText,
-            textFormat = finalFormat, // Enviamos el formato condicional
+            textFormat = finalFormat,
+            textItemId = finalItemId,
             fileManagerId = fileManagerId
         )
     }
+
 }

@@ -1,6 +1,7 @@
 package com.practicas.aulavirtualapp.ui
 
 import android.Manifest
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
@@ -361,7 +362,7 @@ class AssignmentDetailActivity : AppCompatActivity() {
     ) {
         val fileName = fileName(fileUri)
 
-        // 🕵️‍♂️ LOG INICIO
+        // LOG INICIO
         android.util.Log.d("UPLOAD_DEBUG", "--------------------------------------------------")
         android.util.Log.d("UPLOAD_DEBUG", "1. INICIANDO SUBIDA DE ARCHIVO")
         android.util.Log.d("UPLOAD_DEBUG", "   -> Archivo: $fileName")
@@ -511,6 +512,8 @@ class AssignmentDetailActivity : AppCompatActivity() {
                     }
                     AssignmentProgressStore.setCompleted(this@AssignmentDetailActivity, assignmentId, true)
                     updateCompleteButton(findViewById(R.id.btnAssignmentMarkComplete))
+                    setResult(Activity.RESULT_OK)
+                    finish()
                 }
 
                 override fun onFailure(call: Call<SaveSubmissionResponse>, t: Throwable) {
@@ -592,11 +595,11 @@ class AssignmentDetailActivity : AppCompatActivity() {
                 return SubmissionInfo(allowFiles = true, allowText = true, fileExtensions = "")
             }
 
-            // 🕵️‍♂️ Lógica Estricta:
+            // Lógica Estricta:
             val allowFiles = isPluginEnabled(assignment.configs, "file")
             val allowText = isPluginEnabled(assignment.configs, "onlinetext")
 
-            // 🚨 CAMBIO AQUÍ: Usamos "filetypeslist" porque así viene en tu JSON
+            //CAMBIO AQUÍ: Usamos "filetypeslist" porque así viene en tu JSON
             val fileExtensions = assignment.configs.firstOrNull {
                 it.subtype == "assignsubmission" &&
                         it.plugin == "file" &&
@@ -606,7 +609,7 @@ class AssignmentDetailActivity : AppCompatActivity() {
             return SubmissionInfo(allowFiles, allowText, fileExtensions)
         }
 
-        // 👇 FUNCIÓN CON LÓGICA ESTRICTA
+        // FUNCIÓN CON LÓGICA ESTRICTA
         private fun isPluginEnabled(configs: List<AssignmentConfig>, plugin: String): Boolean {
             val config = configs.find {
                 it.subtype == "assignsubmission" &&

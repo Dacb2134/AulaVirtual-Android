@@ -29,14 +29,16 @@ class CourseAssignmentsFragment : Fragment() {
 
     private lateinit var viewModel: CourseDetailViewModel
     private lateinit var adapter: CourseAssignmentAdapter
+
     private val dateFormat = SimpleDateFormat("dd MMM • HH:mm", Locale("es", "ES"))
     private var currentFilter: CourseFilter = CourseFilter.ALL
     private var cachedAssignments: List<Assignment> = emptyList()
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
+        inflater: LayoutInflater,
+        container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
+    ): View {
         return inflater.inflate(R.layout.fragment_course_assignments, container, false)
     }
 
@@ -47,6 +49,7 @@ class CourseAssignmentsFragment : Fragment() {
         val pbLoading = view.findViewById<ProgressBar>(R.id.pbAssignmentsLoading)
         val tvEmpty = view.findViewById<TextView>(R.id.tvAssignmentsEmpty)
         val swipeRefresh = view.findViewById<SwipeRefreshLayout>(R.id.swipeRefreshAssignments)
+
         val tvPendingCount = view.findViewById<TextView>(R.id.tvPendingCount)
         val tvOverdueCount = view.findViewById<TextView>(R.id.tvOverdueCount)
         val tvCompletedCount = view.findViewById<TextView>(R.id.tvCompletedCount)
@@ -107,6 +110,7 @@ class CourseAssignmentsFragment : Fragment() {
         viewModel.assignments.observe(viewLifecycleOwner) { assignments ->
             pbLoading.visibility = View.GONE
             val safeAssignments = assignments ?: emptyList()
+
             if (safeAssignments.isEmpty()) {
                 cachedAssignments = emptyList()
                 adapter.submitItems(emptyList())
@@ -114,11 +118,14 @@ class CourseAssignmentsFragment : Fragment() {
             } else {
                 safeAssignments.forEach { assignment ->
                     assignment.courseName = courseName
-                    assignment.courseColor = if (courseColor != 0) colorHex else assignment.courseColor
+                    assignment.courseColor =
+                        if (courseColor != 0) colorHex else assignment.courseColor
                 }
+
                 cachedAssignments = safeAssignments.sortedBy { it.dueDate ?: 0L }
                 renderAssignments(tvEmpty, tvPendingCount, tvOverdueCount, tvCompletedCount)
             }
+
             swipeRefresh.isRefreshing = false
         }
 
@@ -126,6 +133,21 @@ class CourseAssignmentsFragment : Fragment() {
             pbLoading.visibility = View.GONE
             swipeRefresh.isRefreshing = false
             Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+
+        if (cachedAssignments.isNotEmpty()) {
+            view?.let { root ->
+                renderAssignments(
+                    root.findViewById(R.id.tvAssignmentsEmpty),
+                    root.findViewById(R.id.tvPendingCount),
+                    root.findViewById(R.id.tvOverdueCount),
+                    root.findViewById(R.id.tvCompletedCount)
+                )
+            }
         }
     }
 
@@ -151,13 +173,20 @@ class CourseAssignmentsFragment : Fragment() {
 
         val completed = cachedAssignments.filter { completedIds.contains(it.id.toString()) }
         val overdue = cachedAssignments.filter {
-            !completedIds.contains(it.id.toString()) && (it.dueDate ?: 0L) > 0L && now > (it.dueDate ?: 0L) * 1000
+            !completedIds.contains(it.id.toString()) &&
+                    (it.dueDate ?: 0L) > 0L &&
+                    now > (it.dueDate ?: 0L) * 1000
         }
+
         val pendingWithDate = cachedAssignments.filter {
-            !completedIds.contains(it.id.toString()) && (it.dueDate ?: 0L) > 0L && now <= (it.dueDate ?: 0L) * 1000
+            !completedIds.contains(it.id.toString()) &&
+                    (it.dueDate ?: 0L) > 0L &&
+                    now <= (it.dueDate ?: 0L) * 1000
         }
+
         val pendingNoDate = cachedAssignments.filter {
-            !completedIds.contains(it.id.toString()) && (it.dueDate ?: 0L) == 0L
+            !completedIds.contains(it.id.toString()) &&
+                    (it.dueDate ?: 0L) == 0L
         }
 
         tvPendingCount.text = (pendingWithDate.size + pendingNoDate.size).toString()
@@ -166,10 +195,15 @@ class CourseAssignmentsFragment : Fragment() {
 
         val items = mutableListOf<CourseAssignmentRow>()
 
-        fun addSection(title: String, subtitle: String?, assignments: List<Assignment>, status: AssignmentStatus) {
-            if (assignments.isNotEmpty()) {
+        fun addSection(
+            title: String,
+            subtitle: String?,
+            list: List<Assignment>,
+            status: AssignmentStatus
+        ) {
+            if (list.isNotEmpty()) {
                 items.add(CourseAssignmentRow.Header(title, subtitle))
-                assignments.forEach { assignment ->
+                list.forEach { assignment ->
                     items.add(
                         CourseAssignmentRow.Item(
                             assignment = assignment,
@@ -189,13 +223,16 @@ class CourseAssignmentsFragment : Fragment() {
                 addSection("Sin fecha", "Aún sin fecha de entrega", pendingNoDate, AssignmentStatus.NO_DATE)
                 addSection("Hechas", "Entrega registrada", completed, AssignmentStatus.COMPLETED)
             }
+
             CourseFilter.PENDING -> {
                 addSection("Pendientes", "Listas para entregar", pendingWithDate, AssignmentStatus.PENDING)
                 addSection("Sin fecha", "Aún sin fecha de entrega", pendingNoDate, AssignmentStatus.NO_DATE)
             }
+
             CourseFilter.OVERDUE -> {
                 addSection("Atrasadas", "Necesitan tu atención inmediata", overdue, AssignmentStatus.OVERDUE)
             }
+
             CourseFilter.COMPLETED -> {
                 addSection("Hechas", "Entrega registrada", completed, AssignmentStatus.COMPLETED)
             }
