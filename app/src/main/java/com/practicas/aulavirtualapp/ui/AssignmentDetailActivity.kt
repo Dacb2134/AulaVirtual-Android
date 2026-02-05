@@ -25,6 +25,7 @@ import com.practicas.aulavirtualapp.model.Assignment
 import com.practicas.aulavirtualapp.model.AssignmentConfig
 import com.practicas.aulavirtualapp.model.MoodleUploadFile
 import com.practicas.aulavirtualapp.model.SaveSubmissionResponse
+import com.practicas.aulavirtualapp.model.SubmissionStatusResponse
 import com.practicas.aulavirtualapp.network.RetrofitClient
 import com.practicas.aulavirtualapp.repository.AuthRepository
 import com.practicas.aulavirtualapp.utils.AssignmentProgressStore
@@ -201,11 +202,44 @@ class AssignmentDetailActivity : AppCompatActivity() {
         }
 
         updateCompleteButton(btnMarkComplete)
+
+        // 🚀 NUEVO: Validar si la tarea sigue existiendo en Moodle
+        sincronizarEstadoConServidor()
+
         btnMarkComplete.setOnClickListener {
             val isCompleted = AssignmentProgressStore.getCompleted(this).contains(assignmentId.toString())
             AssignmentProgressStore.setCompleted(this, assignmentId, !isCompleted)
             updateCompleteButton(btnMarkComplete)
         }
+    }
+
+    private fun sincronizarEstadoConServidor() {
+        if (userToken.isBlank() || assignmentId == 0) return
+
+        authRepository.getSubmissionStatus(userToken, assignmentId).enqueue(object : Callback<SubmissionStatusResponse> {
+            override fun onResponse(call: Call<SubmissionStatusResponse>, response: Response<SubmissionStatusResponse>) {
+                if (response.isSuccessful) {
+                    val statusEnMoodle = response.body()?.lastAttempt?.submission?.status
+
+                    // Si Moodle dice que NO hay entrega (status "new" o nulo)
+                    // pero nuestra app cree que SÍ está hecha... corregimos.
+                    if (statusEnMoodle == null || statusEnMoodle == "new") {
+                        val estaCompletadaLocal = AssignmentProgressStore.getCompleted(this@AssignmentDetailActivity)
+                            .contains(assignmentId.toString())
+
+                        if (estaCompletadaLocal) {
+                            // 🛠️ Sincronización: El tutor borró la entrega en la web
+                            AssignmentProgressStore.setCompleted(this@AssignmentDetailActivity, assignmentId, false)
+                            updateCompleteButton(findViewById(R.id.btnAssignmentMarkComplete))
+                            Toast.makeText(this@AssignmentDetailActivity, "Sincronizado: La tarea vuelve a estar pendiente", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            }
+            override fun onFailure(call: Call<SubmissionStatusResponse>, t: Throwable) {
+                // Error de red silencioso para no interrumpir
+            }
+        })
     }
 
     private fun requestFilePermission() {
@@ -362,7 +396,7 @@ class AssignmentDetailActivity : AppCompatActivity() {
     ) {
         val fileName = fileName(fileUri)
 
-        // LOG INICIO
+        // 🕵️‍♂️ LOG INICIO
         android.util.Log.d("UPLOAD_DEBUG", "--------------------------------------------------")
         android.util.Log.d("UPLOAD_DEBUG", "1. INICIANDO SUBIDA DE ARCHIVO")
         android.util.Log.d("UPLOAD_DEBUG", "   -> Archivo: $fileName")
@@ -590,16 +624,13 @@ class AssignmentDetailActivity : AppCompatActivity() {
         )
 
         private fun buildSubmissionInfo(assignment: Assignment): SubmissionInfo {
-            // Si configs está vacío, dejamos todo habilitado por seguridad (o podrías restringir).
             if (assignment.configs.isEmpty()) {
                 return SubmissionInfo(allowFiles = true, allowText = true, fileExtensions = "")
             }
 
-            // Lógica Estricta:
             val allowFiles = isPluginEnabled(assignment.configs, "file")
             val allowText = isPluginEnabled(assignment.configs, "onlinetext")
 
-            //CAMBIO AQUÍ: Usamos "filetypeslist" porque así viene en tu JSON
             val fileExtensions = assignment.configs.firstOrNull {
                 it.subtype == "assignsubmission" &&
                         it.plugin == "file" &&
@@ -609,14 +640,12 @@ class AssignmentDetailActivity : AppCompatActivity() {
             return SubmissionInfo(allowFiles, allowText, fileExtensions)
         }
 
-        // FUNCIÓN CON LÓGICA ESTRICTA
         private fun isPluginEnabled(configs: List<AssignmentConfig>, plugin: String): Boolean {
             val config = configs.find {
                 it.subtype == "assignsubmission" &&
                         it.plugin == plugin &&
                         it.name == "enabled"
             }
-            // Solo si existe y es "1" devolvemos true. Si no existe (null), es false.
             return config?.value == "1"
         }
     }

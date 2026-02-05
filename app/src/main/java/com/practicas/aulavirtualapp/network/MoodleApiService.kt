@@ -10,6 +10,7 @@ import com.practicas.aulavirtualapp.model.MoodleUploadFile
 import com.practicas.aulavirtualapp.model.OAuthTokenResponse
 import com.practicas.aulavirtualapp.model.SaveSubmissionResponse
 import com.practicas.aulavirtualapp.model.SiteInfoResponse
+import com.practicas.aulavirtualapp.model.SubmissionStatusResponse
 import com.practicas.aulavirtualapp.model.UserDetail
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
@@ -96,6 +97,13 @@ interface MoodleApiService {
         //ARCHIVOS
         @Field("plugindata[files_filemanager]") fileManagerId: Int? = null
     ): Call<SaveSubmissionResponse>
+
+
+    @GET("webservice/rest/server.php?moodlewsrestformat=json&wsfunction=mod_assign_get_submission_status")
+    fun getSubmissionStatus(
+        @Query("wstoken") token: String,
+        @Query("assignid") assignmentId: Int
+    ): Call<SubmissionStatusResponse>
 
 
     @GET("webservice/rest/server.php")

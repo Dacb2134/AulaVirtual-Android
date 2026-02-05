@@ -12,6 +12,7 @@ import com.practicas.aulavirtualapp.model.MoodleUploadFile
 import com.practicas.aulavirtualapp.model.OAuthTokenResponse
 import com.practicas.aulavirtualapp.model.SaveSubmissionResponse
 import com.practicas.aulavirtualapp.model.SiteInfoResponse
+import com.practicas.aulavirtualapp.model.SubmissionStatusResponse
 import com.practicas.aulavirtualapp.model.UserDetail
 import com.practicas.aulavirtualapp.network.PrivateFilesInfo
 import com.practicas.aulavirtualapp.network.RetrofitClient
@@ -66,6 +67,9 @@ class AuthRepository {
     fun getFilesInfo(token: String, userId: Int): Call<PrivateFilesInfo> {
         return apiService.getFilesInfo(token, userId)
     }
+    fun getSubmissionStatus(token: String, assignmentId: Int): Call<SubmissionStatusResponse> {
+        return apiService.getSubmissionStatus(token, assignmentId)
+    }
 
     fun uploadAssignmentFile(
         token: RequestBody,
@@ -97,5 +101,6 @@ class AuthRepository {
             fileManagerId = fileManagerId
         )
     }
+
 
 }

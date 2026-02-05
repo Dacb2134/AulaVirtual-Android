@@ -8,10 +8,12 @@ import com.practicas.aulavirtualapp.model.Assignment
 import com.practicas.aulavirtualapp.model.AssignmentResponse
 import com.practicas.aulavirtualapp.model.Course
 import com.practicas.aulavirtualapp.repository.AuthRepository
+import com.practicas.aulavirtualapp.model.SubmissionStatusResponse
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import java.util.concurrent.atomic.AtomicInteger
+
 
 // Clase para agrupar los totales de los filtros
 data class AgendaCounts(val all: Int, val next7Days: Int, val overdue: Int)
@@ -69,18 +71,44 @@ class AgendaViewModel : ViewModel() {
                         val cursoData = response.body()?.courses?.find { it.id == curso.id }
                             ?: response.body()?.courses?.firstOrNull()
 
-                        cursoData?.assignments?.forEach { tarea ->
+                        val tareasMoodle = cursoData?.assignments ?: emptyList()
+
+                        tareasMoodle.forEach { tarea ->
                             tarea.courseName = curso.fullName ?: "Curso sin nombre"
                             tarea.courseColor = curso.color ?: "#6200EE"
 
-                            if (!completedIds.contains(tarea.id.toString())) {
+                            // 🕵️‍♂️ Análisis de Sincronización Real
+                            val estaHechaLocal = completedIds.contains(tarea.id.toString())
+
+                            if (estaHechaLocal) {
+                                // Si la app cree que está hecha, verificamos con Moodle su estado real
+                                repository.getSubmissionStatus(token, tarea.id).enqueue(object : Callback<SubmissionStatusResponse> {
+                                    override fun onResponse(call: Call<SubmissionStatusResponse>, res: Response<SubmissionStatusResponse>) {
+                                        val status = res.body()?.lastAttempt?.submission?.status
+
+                                        // Si status es null o "new", el profesor borró la entrega
+                                        if (status == null || status == "new") {
+                                            // 🛠️ ACTUALIZACIÓN DE CACHÉ: Ya no está hecha
+                                            // Aquí necesitarás pasar el context al ViewModel o manejar un evento para limpiar el store
+                                            listaTotalTareas.add(tarea) // La volvemos a meter a la lista de pendientes
+                                        }
+
+                                        if (cursosPendientes.decrementAndGet() == 0) finalizarCarga(listaTotalTareas)
+                                    }
+                                    override fun onFailure(call: Call<SubmissionStatusResponse>, t: Throwable) {
+                                        if (cursosPendientes.decrementAndGet() == 0) finalizarCarga(listaTotalTareas)
+                                    }
+                                })
+                            } else {
+                                // Si no está hecha localmente, va directo a la lista de la Agenda
                                 listaTotalTareas.add(tarea)
+                                if (cursosPendientes.decrementAndGet() == 0) finalizarCarga(listaTotalTareas)
                             }
                         }
+                    } else {
+                        if (cursosPendientes.decrementAndGet() == 0) finalizarCarga(listaTotalTareas)
                     }
-                    if (cursosPendientes.decrementAndGet() == 0) finalizarCarga(listaTotalTareas)
                 }
-
                 override fun onFailure(call: Call<AssignmentResponse>, t: Throwable) {
                     if (cursosPendientes.decrementAndGet() == 0) finalizarCarga(listaTotalTareas)
                 }
