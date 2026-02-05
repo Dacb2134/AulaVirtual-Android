@@ -13,17 +13,19 @@ import retrofit2.Callback
 import retrofit2.Response
 import java.util.concurrent.atomic.AtomicInteger
 
+// Clase para agrupar los totales de los filtros
+data class AgendaCounts(val all: Int, val next7Days: Int, val overdue: Int)
+
 class AgendaViewModel : ViewModel() {
 
     private val repository = AuthRepository()
     private var listaCompleta: List<Assignment> = emptyList()
-
-    // Guardamos los IDs completados para filtrar en cada recarga
     private var completedIds: Set<String> = emptySet()
 
     val agenda = MutableLiveData<List<Assignment>>()
     val mensaje = MutableLiveData<String>()
     val cargando = MutableLiveData<Boolean>()
+    val conteos = MutableLiveData<AgendaCounts>()
 
     fun cargarAgendaGlobal(token: String, userId: Int, completedIds: Set<String>) {
         this.completedIds = completedIds
@@ -71,7 +73,6 @@ class AgendaViewModel : ViewModel() {
                             tarea.courseName = curso.fullName ?: "Curso sin nombre"
                             tarea.courseColor = curso.color ?: "#6200EE"
 
-
                             if (!completedIds.contains(tarea.id.toString())) {
                                 listaTotalTareas.add(tarea)
                             }
@@ -90,6 +91,16 @@ class AgendaViewModel : ViewModel() {
     private fun finalizarCarga(tareas: MutableList<Assignment>) {
         cargando.value = false
         listaCompleta = tareas.sortedBy { it.dueDate ?: 0L }
+
+        // 📈 Cálculo de Conteos
+        val hoy = System.currentTimeMillis()
+        val sieteDias = hoy + (7L * 24 * 60 * 60 * 1000)
+
+        val total = listaCompleta.size
+        val proximos = listaCompleta.count { (it.dueDate ?: 0L) * 1000 in hoy..sieteDias }
+        val atrasadas = listaCompleta.count { (it.dueDate ?: 0L) > 0 && (it.dueDate ?: 0L) * 1000 < hoy }
+
+        conteos.value = AgendaCounts(total, proximos, atrasadas)
 
         if (listaCompleta.isEmpty()) {
             mensaje.value = "¡Todo al día! No hay tareas pendientes."
