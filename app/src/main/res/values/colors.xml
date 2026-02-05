@@ -9,6 +9,10 @@
     <color name="background">#FFF8F5</color>       <color name="surface">#FFFFFF</color>          <color name="text_primary">#1A2C3E</color>     <color name="text_secondary">#546E7A</color>   <color name="color_success">#4CAF50</color>
     <color name="color_warning">#FFA000</color>
     <color name="color_error">#D32F2F</color>
+    <color name="status_pending">#2B4E72</color>
+    <color name="status_overdue">#D32F2F</color>
+    <color name="status_completed">#2E7D32</color>
+    <color name="status_neutral">#607D8B</color>
 
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>

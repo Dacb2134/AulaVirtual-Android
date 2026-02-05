@@ -43,14 +43,23 @@ class AgendaFragment : Fragment() {
         val swipeRefresh = view.findViewById<SwipeRefreshLayout>(R.id.swipeRefreshAgenda)
         swipeRefresh.setupBrandColors()
 
+        val token = requireActivity().intent.getStringExtra("USER_TOKEN") ?: ""
+        val userId = requireActivity().intent.getIntExtra("USER_ID", 0)
+
         rvAgenda.layoutManager = LinearLayoutManager(context)
-        adapter = AssignmentAdapter()
+        adapter = AssignmentAdapter(showCourseName = true) { assignment ->
+            val intent = AssignmentDetailActivity.createIntent(
+                requireContext(),
+                assignment,
+                assignment.courseName,
+                0,
+                token
+            )
+            startActivity(intent)
+        }
         rvAgenda.adapter = adapter
 
         viewModel = ViewModelProvider(this)[AgendaViewModel::class.java]
-
-        val token = requireActivity().intent.getStringExtra("USER_TOKEN") ?: ""
-        val userId = requireActivity().intent.getIntExtra("USER_ID", 0)
 
         // NUEVO: Listener Swipe
         swipeRefresh.setOnRefreshListener {

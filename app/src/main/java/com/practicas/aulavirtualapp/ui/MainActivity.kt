@@ -7,14 +7,38 @@ import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.ViewModelProvider
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInClient
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
 import com.practicas.aulavirtualapp.ui.HomeActivity
 import com.practicas.aulavirtualapp.R
+import com.practicas.aulavirtualapp.model.UserRole
 import com.practicas.aulavirtualapp.viewmodel.LoginViewModel
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var viewModel: LoginViewModel
+    private lateinit var googleSignInClient: GoogleSignInClient
+
+    private val googleLoginLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+        try {
+            val account = task.getResult(ApiException::class.java)
+            val authCode = account?.serverAuthCode
+            if (authCode.isNullOrBlank()) {
+                Toast.makeText(this, "Google no devolvió el código de autorización.", Toast.LENGTH_SHORT).show()
+                return@registerForActivityResult
+            }
+            viewModel.realizarLoginOAuth(authCode, getString(R.string.moodle_oauth_redirect_uri))
+        } catch (exception: ApiException) {
+            Toast.makeText(this, "Error de Google Sign-In: ${exception.statusCode}", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -26,6 +50,7 @@ class MainActivity : AppCompatActivity() {
         val etUser = findViewById<EditText>(R.id.etUsername)
         val etPass = findViewById<EditText>(R.id.etPassword)
         val btnLogin = findViewById<Button>(R.id.btnLogin)
+        val btnGoogleLogin = findViewById<Button>(R.id.btnGoogleLogin)
         val tvStatus = findViewById<TextView>(R.id.tvStatus)
 
         // OBSERVAMOS los cambios
@@ -34,8 +59,10 @@ class MainActivity : AppCompatActivity() {
             if (estaCargando) {
                 tvStatus.text = "Conectando con Moodle..."
                 btnLogin.isEnabled = false
+                btnGoogleLogin.isEnabled = false
             } else {
                 btnLogin.isEnabled = true
+                btnGoogleLogin.isEnabled = true
             }
         }
 
@@ -45,10 +72,14 @@ class MainActivity : AppCompatActivity() {
                 tvStatus.text = "¡Login Correcto!"
                 Toast.makeText(this, "Bienvenido", Toast.LENGTH_SHORT).show()
 
-                val intent = Intent(this, HomeActivity::class.java)
+                val destination = when (response.role) {
+                    UserRole.ADMIN -> AdminHomeActivity::class.java
+                    UserRole.DOCENTE -> TeacherHomeActivity::class.java
+                    UserRole.ESTUDIANTE -> HomeActivity::class.java
+                }
+                val intent = Intent(this, destination)
                 intent.putExtra("USER_TOKEN", response.token)
-
-                intent.putExtra("USER_ID", response.userid)
+                intent.putExtra("USER_ID", response.userId)
 
                 startActivity(intent)
                 finish()
@@ -71,6 +102,17 @@ class MainActivity : AppCompatActivity() {
             } else {
                 Toast.makeText(this, "Faltan datos", Toast.LENGTH_SHORT).show()
             }
+        }
+
+        val googleOptions = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestEmail()
+            .requestServerAuthCode(getString(R.string.google_oauth_client_id), false)
+            .build()
+        googleSignInClient = GoogleSignIn.getClient(this, googleOptions)
+
+        btnGoogleLogin.setOnClickListener {
+            val signInIntent = googleSignInClient.signInIntent
+            googleLoginLauncher.launch(signInIntent)
         }
     }
 }

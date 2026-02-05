@@ -1,6 +1,10 @@
 package com.practicas.aulavirtualapp.ui
 
+import android.Manifest
+import android.os.Build
 import android.os.Bundle
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import com.google.android.material.bottomnavigation.BottomNavigationView
@@ -10,13 +14,26 @@ import com.practicas.aulavirtualapp.ui.HomeFragment
 import com.practicas.aulavirtualapp.ui.ProfileFragment
 import com.practicas.aulavirtualapp.R
 
-class HomeActivity : AppCompatActivity() {
+open class HomeActivity : AppCompatActivity() {
+
+    private val permissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (!granted) {
+            Toast.makeText(
+                this,
+                "Permiso denegado. Puedes habilitarlo más tarde desde ajustes.",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_home)
 
         val bottomNav = findViewById<BottomNavigationView>(R.id.bottomNavigation)
+        requestStoragePermissionIfNeeded()
 
         // mostramos HomeFragme
         if (savedInstanceState == null) {
@@ -39,5 +56,15 @@ class HomeActivity : AppCompatActivity() {
         supportFragmentManager.beginTransaction()
             .replace(R.id.nav_host_fragment, fragment)
             .commit()
+    }
+
+    private fun requestStoragePermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            return
+        }
+        val permission = Manifest.permission.READ_EXTERNAL_STORAGE
+        if (checkSelfPermission(permission) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            permissionLauncher.launch(permission)
+        }
     }
 }

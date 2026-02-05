@@ -13,7 +13,9 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 class AssignmentAdapter(
-    private var assignments: List<Assignment> = emptyList()
+    private var assignments: List<Assignment> = emptyList(),
+    private val showCourseName: Boolean = true,
+    private val onAssignmentClick: ((Assignment) -> Unit)? = null
 ) : RecyclerView.Adapter<AssignmentAdapter.AssignmentViewHolder>() {
 
     private val headerFormat = SimpleDateFormat("EEEE, d 'de' MMMM", Locale("es", "ES"))
@@ -34,18 +36,35 @@ class AssignmentAdapter(
         val tareaActual = assignments[position]
 
         // --- LÓGICA DE AGRUPACIÓN (FECHAS) ---
-        val fechaActualTexto = headerFormat.format(Date(tareaActual.dueDate * 1000))
+        val tareaActualDue = tareaActual.dueDate ?: 0L
+        val fechaActualTexto = if (tareaActualDue > 0) {
+            headerFormat.format(Date(tareaActualDue * 1000))
+        } else {
+            "Sin fecha"
+        }
         var mostrarEncabezado = true
 
         if (position > 0) {
             val tareaAnterior = assignments[position - 1]
-            val fechaAnteriorTexto = headerFormat.format(Date(tareaAnterior.dueDate * 1000))
+            val tareaAnteriorDue = tareaAnterior.dueDate ?: 0L
+            val fechaAnteriorTexto = if (tareaAnteriorDue > 0) {
+                headerFormat.format(Date(tareaAnteriorDue * 1000))
+            } else {
+                "Sin fecha"
+            }
             if (fechaActualTexto == fechaAnteriorTexto) {
                 mostrarEncabezado = false
             }
         }
 
-        holder.bind(tareaActual, mostrarEncabezado, fechaActualTexto, timeFormat)
+        holder.bind(
+            tareaActual,
+            mostrarEncabezado,
+            fechaActualTexto,
+            timeFormat,
+            showCourseName,
+            onAssignmentClick
+        )
     }
 
     override fun getItemCount() = assignments.size
@@ -58,7 +77,14 @@ class AssignmentAdapter(
         private val viewColor: View = itemView.findViewById(R.id.viewColorStrip)
         private val ivIcon: ImageView = itemView.findViewById(R.id.ivIcon)
 
-        fun bind(assignment: Assignment, showHeader: Boolean, dateText: String, timeFormat: SimpleDateFormat) {
+        fun bind(
+            assignment: Assignment,
+            showHeader: Boolean,
+            dateText: String,
+            timeFormat: SimpleDateFormat,
+            showCourseName: Boolean,
+            onAssignmentClick: ((Assignment) -> Unit)?
+        ) {
 
             // 1. Encabezado de fecha
             if (showHeader) {
@@ -70,19 +96,32 @@ class AssignmentAdapter(
 
             // 2. Datos básicos
             tvTitle.text = assignment.name
-            tvCourse.text = if (assignment.courseName.isNotEmpty()) assignment.courseName else "Curso General"
+            if (showCourseName) {
+                tvCourse.visibility = View.VISIBLE
+                tvCourse.text = if (assignment.courseName.isNotEmpty()) assignment.courseName else "Curso General"
+            } else {
+                tvCourse.visibility = View.GONE
+            }
 
             // 3. --- LÓGICA DE ADVERTENCIA DE TIEMPO (NUEVO) ---
             val now = System.currentTimeMillis()
-            val dueDateMillis = assignment.dueDate * 1000
+            val dueDateSeconds = assignment.dueDate ?: 0L
+            val dueDateMillis = dueDateSeconds * 1000
             val diff = dueDateMillis - now
 
             val unaHora = 60 * 60 * 1000
             val unDia = 24 * unaHora
 
-            val fechaHoraTexto = "Vence: ${timeFormat.format(Date(dueDateMillis))}"
+            val fechaHoraTexto = if (dueDateSeconds > 0) {
+                "Vence: ${timeFormat.format(Date(dueDateMillis))}"
+            } else {
+                "Sin fecha de entrega"
+            }
 
-            if (diff < 0) {
+            if (dueDateSeconds <= 0) {
+                tvDate.text = fechaHoraTexto
+                tvDate.setTextColor(Color.parseColor("#666666"))
+            } else if (diff < 0) {
                 // A) ATRASADA (Ya pasó la fecha)
                 tvDate.text = "⚠ Atrasada ($fechaHoraTexto)"
                 tvDate.setTextColor(Color.RED)
@@ -105,6 +144,8 @@ class AssignmentAdapter(
             } catch (e: Exception) {
                 viewColor.setBackgroundColor(Color.parseColor("#6200EE"))
             }
+
+            itemView.setOnClickListener { onAssignmentClick?.invoke(assignment) }
         }
     }
 }
