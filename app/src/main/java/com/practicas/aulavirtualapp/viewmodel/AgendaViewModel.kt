@@ -107,12 +107,19 @@ class AgendaViewModel : ViewModel() {
         for (curso in cursos) {
             repository.getAssignments(token, curso.id).enqueue(object : Callback<AssignmentResponse> {
                 override fun onResponse(call: Call<AssignmentResponse>, response: Response<AssignmentResponse>) {
-                    response.body()?.courses?.forEach { cursoMoodle ->
-                        cursoMoodle.assignments.forEach { tarea ->
-                            tarea.courseName = curso.fullName
-                            tarea.courseColor = curso.color ?: "#6200EE"
-                            listaTotalTareas.add(tarea)
+                    if (response.isSuccessful) {
+                        response.body()?.courses?.forEach { cursoMoodle ->
+                            cursoMoodle.assignments.forEach { tarea ->
+                                tarea.courseName = curso.fullName
+                                tarea.courseColor = curso.color ?: "#6200EE"
+                                listaTotalTareas.add(tarea)
+                            }
                         }
+                    } else {
+                        Log.e(
+                            "AgendaViewModel",
+                            "Error HTTP ${response.code()} al cargar tareas: ${response.errorBody()?.string().orEmpty()}"
+                        )
                     }
                     verificarSiTerminamos(cursos.size, ++respuestasRecibidas, listaTotalTareas)
                 }
