@@ -34,4 +34,8 @@ object ColorGenerator {
     fun getIconColor(index: Int): Int {
         return Color.parseColor(iconTints[index % iconTints.size])
     }
+
+    fun getIconColorHex(index: Int): String {
+        return iconTints[index % iconTints.size]
+    }
 }

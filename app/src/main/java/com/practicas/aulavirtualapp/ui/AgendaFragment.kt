@@ -1,5 +1,6 @@
 package com.practicas.aulavirtualapp.ui
 
+import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -39,29 +40,40 @@ class AgendaFragment : Fragment() {
         val tvEmpty = view.findViewById<TextView>(R.id.tvEmptyAgenda)
         val chipGroup = view.findViewById<ChipGroup>(R.id.chipGroupFilters)
 
-        // NUEVO: Referencia Swipe
         val swipeRefresh = view.findViewById<SwipeRefreshLayout>(R.id.swipeRefreshAgenda)
         swipeRefresh.setupBrandColors()
 
+        // 🔑 Obtenemos los datos de sesión desde la Activity principal
         val token = requireActivity().intent.getStringExtra("USER_TOKEN") ?: ""
         val userId = requireActivity().intent.getIntExtra("USER_ID", 0)
 
         rvAgenda.layoutManager = LinearLayoutManager(context)
+
+        // 🔥 ADAPTER CORREGIDO: Ahora redirige directamente al detalle de la tarea (Deber)
         adapter = AssignmentAdapter(showCourseName = true) { assignment ->
+
+            // 🚀 Usamos el método estático createIntent que definimos en AssignmentDetailActivity
+            // Esto pasa automáticamente el token, colores y configuraciones de entrega.
             val intent = AssignmentDetailActivity.createIntent(
-                requireContext(),
-                assignment,
-                assignment.courseName,
-                0,
-                token
+                context = requireContext(),
+                assignment = assignment,
+                fallbackCourseName = assignment.courseName,
+                fallbackCourseColor = try {
+                    Color.parseColor(assignment.courseColor)
+                } catch (e: Exception) {
+                    0
+                },
+                userToken = token
             )
+
             startActivity(intent)
         }
+
         rvAgenda.adapter = adapter
 
         viewModel = ViewModelProvider(this)[AgendaViewModel::class.java]
 
-        // NUEVO: Listener Swipe
+        // --- LÓGICA DE REFRESH ---
         swipeRefresh.setOnRefreshListener {
             if (token.isNotEmpty()) {
                 isUserRefreshing = true
@@ -72,6 +84,7 @@ class AgendaFragment : Fragment() {
             }
         }
 
+        // --- FILTROS DE CHIPS ---
         chipGroup.setOnCheckedStateChangeListener { _, checkedIds ->
             if (checkedIds.isNotEmpty()) {
                 when (checkedIds[0]) {
@@ -82,23 +95,16 @@ class AgendaFragment : Fragment() {
             }
         }
 
+        // --- OBSERVADORES DEL VIEWMODEL ---
         viewModel.cargando.observe(viewLifecycleOwner) { estaCargando ->
-            // 1. Controlamos la bolita de arriba (Swipe)
             swipeRefresh.isRefreshing = isUserRefreshing && estaCargando
 
-            // 2. Controlamos el Zorro del centro
             if (estaCargando && !isUserRefreshing) {
-                // Si carga y NO estamos jalando el dedo -> MUESTRA ZORRO
                 pbLoading.visibility = View.VISIBLE
-
-                // Ocultamos la lista y el texto vacío para que solo se vea el zorro
                 rvAgenda.visibility = View.GONE
                 tvEmpty.visibility = View.GONE
             } else {
-                // Si terminó de cargar O estamos haciendo swipe -> OCULTA ZORRO
                 pbLoading.visibility = View.GONE
-
-                // Mostramos la lista si ya hay datos
                 if (!estaCargando) rvAgenda.visibility = View.VISIBLE
             }
 
@@ -106,7 +112,6 @@ class AgendaFragment : Fragment() {
                 isUserRefreshing = false
             }
         }
-
 
         viewModel.agenda.observe(viewLifecycleOwner) { tareas ->
             if (tareas.isNotEmpty()) {
@@ -128,6 +133,7 @@ class AgendaFragment : Fragment() {
             }
         }
 
+        // Carga inicial
         if (token.isNotEmpty()) {
             viewModel.cargarAgendaGlobal(token, userId)
         } else {

@@ -3,6 +3,7 @@ package com.practicas.aulavirtualapp.viewmodel
 import android.util.Log
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import com.practicas.aulavirtualapp.ColorGenerator
 import com.practicas.aulavirtualapp.model.Assignment
 import com.practicas.aulavirtualapp.model.AssignmentResponse
 import com.practicas.aulavirtualapp.model.Course
@@ -28,7 +29,6 @@ class AgendaViewModel : ViewModel() {
     fun cargarAgendaGlobal(token: String, userId: Int) {
         cargando.value = true
 
-        // 🕵️‍♂️ LOG INICIO
         Log.e("AGENDA_DEBUG", "==================================================")
         Log.d("AGENDA_DEBUG", "1. INICIANDO CARGA GLOBAL (UserID: $userId)")
 
@@ -38,11 +38,11 @@ class AgendaViewModel : ViewModel() {
                     val cursos = response.body()!!
                     Log.d("AGENDA_DEBUG", "2. CURSOS RECIBIDOS: ${cursos.size}")
 
-                    val colores = listOf("#FF5722", "#4CAF50", "#2196F3", "#9C27B0", "#E91E63", "#FF9800")
+                    //  SINCRONIZACIÓN DE COLORES
+
                     cursos.forEachIndexed { index, curso ->
-                        curso.color = colores[index % colores.size]
-                        // 🛠️ CORRECCIÓN AQUÍ: Usamos fullName (camelCase)
-                        Log.d("AGENDA_DEBUG", "   -> Curso detectado: [ID: ${curso.id}] ${curso.fullName}")
+                        curso.color = ColorGenerator.getIconColorHex(index)
+                        Log.d("AGENDA_DEBUG", "   -> Curso: [ID: ${curso.id}] ${curso.fullName} | Color: ${curso.color}")
                     }
 
                     traerTareasDeTodosLosCursos(token, cursos)
