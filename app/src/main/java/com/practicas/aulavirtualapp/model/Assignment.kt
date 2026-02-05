@@ -9,8 +9,8 @@ data class AssignmentResponse(
 
 // El contenedor por curso
 data class CourseAssignments(
-    @SerializedName("id") val courseId: Int,
-    @SerializedName("assignments") val assignments: List<Assignment>
+    @SerializedName(value = "id", alternate = ["courseid"]) val courseId: Int,
+    @SerializedName("assignments") val assignments: List<Assignment> = emptyList()
 )
 
 data class AssignmentConfig(

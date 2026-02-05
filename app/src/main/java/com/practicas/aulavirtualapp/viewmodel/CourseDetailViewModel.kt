@@ -34,21 +34,21 @@ class CourseDetailViewModel : ViewModel() {
                     // 🕵️‍♂️ LOGS ESPIAS: Busca "MI_APP" en el Logcat para ver esto
                     Log.d("MI_APP", "Respuesta recibida: $respuestaMoodle")
 
+                    val cursos = respuestaMoodle?.courses.orEmpty()
                     // Buscamos si Moodle nos devolvió datos para este curso específico
-                    val cursoEncontrado = respuestaMoodle?.courses?.find { it.courseId == courseId }
+                    val cursoEncontrado = cursos.find { it.courseId == courseId } ?: cursos.firstOrNull()
+                    val tareas = cursoEncontrado?.assignments
+                        ?: cursos.flatMap { it.assignments }
 
-                    if (cursoEncontrado != null) {
-                        Log.d("MI_APP", "¡Curso encontrado! Tiene ${cursoEncontrado.assignments.size} tareas.")
-
-                        if (cursoEncontrado.assignments.isNotEmpty()) {
-                            assignments.value = cursoEncontrado.assignments.sortedBy { it.dueDate ?: 0L }
-                        } else {
-                            // Si la lista está vacía
-                            assignments.value = emptyList()
-                            message.value = "No hay tareas pendientes (Lista vacía)"
-                        }
+                    if (tareas.isNotEmpty()) {
+                        Log.d("MI_APP", "¡Tareas encontradas! Total: ${tareas.size}.")
+                        assignments.value = tareas.sortedBy { it.dueDate ?: 0L }
                     } else {
-                        Log.d("MI_APP", "El curso ID $courseId no vino en la respuesta de Moodle.")
+                        if (cursos.isEmpty()) {
+                            Log.d("MI_APP", "La respuesta de Moodle no trajo cursos.")
+                        } else {
+                            Log.d("MI_APP", "El curso ID $courseId no vino en la respuesta de Moodle.")
+                        }
                         assignments.value = emptyList()
                         message.value = "No hay tareas pendientes 🎉"
                     }
