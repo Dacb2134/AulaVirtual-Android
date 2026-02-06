@@ -26,7 +26,7 @@ class CourseForumsFragment : Fragment(R.layout.fragment_course_forums) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // 1. Recuperar argumentos (pasados desde CourseDetailActivity)
+        // 1. Recuperar argumentos
         arguments?.let {
             courseId = it.getInt("COURSE_ID")
             token = it.getString("USER_TOKEN") ?: ""
@@ -39,14 +39,14 @@ class CourseForumsFragment : Fragment(R.layout.fragment_course_forums) {
         val courseColor = arguments?.getInt("COURSE_COLOR") ?: 0
 
         adapter = ForumAdapter { forum ->
-
             val intent = Intent(requireContext(), ForumDetailActivity::class.java)
-            intent.putExtra("FORUM_ID", forum.id)
-            intent.putExtra("FORUM_NAME", forum.name)
+
+            // 👇 CAMBIO IMPORTANTE: Pasamos el objeto completo para tener fechas y descripción
+            intent.putExtra("FORUM_DATA", forum)
             intent.putExtra("USER_TOKEN", token)
             intent.putExtra("COURSE_COLOR", courseColor)
+
             startActivity(intent)
-            Toast.makeText(requireContext(), "Abrir foro: ${forum.name}", Toast.LENGTH_SHORT).show()
         }
 
         rvForums.layoutManager = LinearLayoutManager(requireContext())
@@ -62,7 +62,6 @@ class CourseForumsFragment : Fragment(R.layout.fragment_course_forums) {
         progressBar.visibility = View.VISIBLE
         tvEmpty.visibility = View.GONE
 
-        // Llamada a tu API definida en MoodleApiService
         RetrofitClient.instance.getForumsByCourse(token = token, courseId = courseId)
             .enqueue(object : Callback<List<Forum>> {
                 override fun onResponse(call: Call<List<Forum>>, response: Response<List<Forum>>) {
