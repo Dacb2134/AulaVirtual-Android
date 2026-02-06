@@ -1,5 +1,6 @@
 package com.practicas.aulavirtualapp.network
 
+import com.practicas.aulavirtualapp.model.AddDiscussionResponse
 import com.practicas.aulavirtualapp.model.AssignmentResponse
 import com.practicas.aulavirtualapp.model.BadgeResponse
 import com.practicas.aulavirtualapp.model.Course
@@ -193,8 +194,9 @@ interface MoodleApiService {
         @Field("moodlewsrestformat") format: String = "json",
         @Field("forumid") forumId: Int,
         @Field("subject") subject: String,
-        @Field("message") message: String
-    ): Call<Map<String, Any>>
+        @Field("message") message: String,
+        @Field("groupid") groupId: Int = -1
+    ): Call<AddDiscussionResponse>
 
     //  Responder a un post
     @FormUrlEncoded
