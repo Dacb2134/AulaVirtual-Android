@@ -18,7 +18,7 @@ import java.util.*
 
 class DiscussionAdapter(
     private var discussions: List<ForumDiscussion> = emptyList(),
-    // Callback modificado: recibe el item y opcionalmente el mensaje de respuesta
+
     private val onAction: (ForumDiscussion, String?) -> Unit
 ) : RecyclerView.Adapter<DiscussionAdapter.ViewHolder>() {
 
