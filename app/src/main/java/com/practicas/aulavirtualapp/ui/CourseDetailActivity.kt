@@ -77,7 +77,7 @@ class CourseDetailActivity : AppCompatActivity() {
     }
 
     private fun cambiarFragmento(fragment: Fragment) {
-        // Le pasamos siempre los argumentos (Token, ID curso, Color)
+
         fragment.arguments = Bundle(courseArgs)
 
         supportFragmentManager.beginTransaction()
