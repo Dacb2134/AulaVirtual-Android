@@ -36,14 +36,16 @@ class CourseForumsFragment : Fragment(R.layout.fragment_course_forums) {
         val rvForums = view.findViewById<RecyclerView>(R.id.rvForums)
         val progressBar = view.findViewById<ProgressBar>(R.id.progressBar)
         val tvEmpty = view.findViewById<TextView>(R.id.tvEmpty)
+        val courseColor = arguments?.getInt("COURSE_COLOR") ?: 0
 
         adapter = ForumAdapter { forum ->
-            // AQUÍ ABRIREMOS LA ACTIVIDAD DE DETALLE DEL FORO (Paso siguiente)
-            // val intent = Intent(requireContext(), ForumDetailActivity::class.java)
-            // intent.putExtra("FORUM_ID", forum.id)
-            // intent.putExtra("FORUM_NAME", forum.name)
-            // intent.putExtra("USER_TOKEN", token)
-            // startActivity(intent)
+
+            val intent = Intent(requireContext(), ForumDetailActivity::class.java)
+            intent.putExtra("FORUM_ID", forum.id)
+            intent.putExtra("FORUM_NAME", forum.name)
+            intent.putExtra("USER_TOKEN", token)
+            intent.putExtra("COURSE_COLOR", courseColor)
+            startActivity(intent)
             Toast.makeText(requireContext(), "Abrir foro: ${forum.name}", Toast.LENGTH_SHORT).show()
         }
 

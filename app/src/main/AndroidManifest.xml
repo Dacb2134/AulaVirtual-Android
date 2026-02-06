@@ -36,8 +36,8 @@
         <activity android:name=".ui.AssignmentDetailActivity" />
         <activity android:name=".ui.SettingsActivity" />
         <activity android:name=".ui.BadgesActivity" />
-
         <activity android:name=".ui.FilesActivity" />
+        <activity android:name=".ui.ForumDetailActivity" />
 
     </application>
 
