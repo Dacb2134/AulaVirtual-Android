@@ -82,10 +82,10 @@ class DiscussionAdapter(
                 val color = com.practicas.aulavirtualapp.ColorGenerator.getBackgroundColor(Math.abs(colorIndex))
                 ivAuthor.background.setColorFilter(color, PorterDuff.Mode.SRC_IN)
             } catch (e: Exception) {
-                // Fallback si la clase utils no está lista
+
             }
 
-            // Click general en la tarjeta (Navegar al detalle)
+
             itemView.setOnClickListener {
                 onAction(item, null)
             }
