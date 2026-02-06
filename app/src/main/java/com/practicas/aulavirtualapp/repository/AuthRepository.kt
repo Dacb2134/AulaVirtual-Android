@@ -1,19 +1,7 @@
 package com.practicas.aulavirtualapp.repository
 
 import android.util.Log
-import com.practicas.aulavirtualapp.model.AssignmentResponse
-import com.practicas.aulavirtualapp.model.BadgeResponse
-import com.practicas.aulavirtualapp.model.Course
-import com.practicas.aulavirtualapp.model.CourseSection
-import com.practicas.aulavirtualapp.model.EnrolledUser
-import com.practicas.aulavirtualapp.model.GradeReportResponse
-import com.practicas.aulavirtualapp.model.MoodleFile
-import com.practicas.aulavirtualapp.model.MoodleUploadFile
-import com.practicas.aulavirtualapp.model.OAuthTokenResponse
-import com.practicas.aulavirtualapp.model.SaveSubmissionResponse
-import com.practicas.aulavirtualapp.model.SiteInfoResponse
-import com.practicas.aulavirtualapp.model.SubmissionStatusResponse
-import com.practicas.aulavirtualapp.model.UserDetail
+import com.practicas.aulavirtualapp.model.*
 import com.practicas.aulavirtualapp.network.PrivateFilesInfo
 import com.practicas.aulavirtualapp.network.RetrofitClient
 import com.practicas.aulavirtualapp.network.TokenResponse
@@ -80,7 +68,6 @@ class AuthRepository {
         return apiService.uploadAssignmentFile(token, filepath, itemId, file)
     }
 
-    // 👇 AQUÍ ESTÁ LA LÓGICA INTELIGENTE
     fun saveAssignmentSubmission(
         token: String,
         assignmentId: Int,
@@ -102,5 +89,30 @@ class AuthRepository {
         )
     }
 
+    // FUNCIONES PARA GOOGLE  ---
 
+
+    // 1. Verificar si el email ya existe en Moodle
+    fun checkUserExists(masterToken: String, email: String): Call<List<UserDetail>> {
+        return apiService.getUserByEmail(masterToken, "core_user_get_users_by_field", "json", "email", email)
+    }
+
+    // 2. Registrar usuario nuevo en Moodle
+    fun registerUser(masterToken: String, email: String, fullName: String): Call<List<UserDetail>> {
+        val parts = fullName.trim().split(" ")
+        val firstName = parts.firstOrNull() ?: "Usuario"
+        val lastName = if (parts.size > 1) parts.drop(1).joinToString(" ") else "Google"
+
+        // Contraseña técnica (usuario entra con Google, no necesita saberla)
+        val dummyPass = "GoogleUser_2026!${System.currentTimeMillis()}"
+
+        return apiService.createUser(
+            token = masterToken,
+            username = email.lowercase(),
+            password = dummyPass,
+            firstName = firstName,
+            lastName = lastName,
+            email = email
+        )
+    }
 }

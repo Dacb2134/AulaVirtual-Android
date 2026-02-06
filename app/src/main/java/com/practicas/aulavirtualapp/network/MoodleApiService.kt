@@ -30,6 +30,33 @@ import retrofit2.http.QueryMap
 
 interface MoodleApiService {
 
+    // --- NUEVO: AUTO-REGISTRO CON GOOGLE ---
+
+    @FormUrlEncoded
+    @POST("webservice/rest/server.php")
+    fun getUserByEmail(
+        @Field("wstoken") token: String,
+        @Field("wsfunction") function: String = "core_user_get_users_by_field",
+        @Field("moodlewsrestformat") format: String = "json",
+        @Field("field") field: String = "email",
+        @Field("values[0]") email: String
+    ): Call<List<UserDetail>>
+
+    // Crear usuario nuevo en Moodle
+    @FormUrlEncoded
+    @POST("webservice/rest/server.php")
+    fun createUser(
+        @Field("wstoken") token: String,
+        @Field("wsfunction") function: String = "core_user_create_users",
+        @Field("moodlewsrestformat") format: String = "json",
+        @Field("users[0][username]") username: String,
+        @Field("users[0][password]") password: String,
+        @Field("users[0][firstname]") firstName: String,
+        @Field("users[0][lastname]") lastName: String,
+        @Field("users[0][email]") email: String,
+        @Field("users[0][auth]") auth: String = "manual"
+    ): Call<List<UserDetail>>
+
     @GET("login/token.php")
     fun login(
         @Query("username") username: String,
