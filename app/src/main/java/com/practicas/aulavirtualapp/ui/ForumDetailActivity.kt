@@ -25,6 +25,7 @@ import com.practicas.aulavirtualapp.R
 import com.practicas.aulavirtualapp.adapter.DiscussionAdapter
 import com.practicas.aulavirtualapp.model.AddDiscussionResponse
 import com.practicas.aulavirtualapp.model.Forum
+import com.practicas.aulavirtualapp.model.ForumDiscussion
 import com.practicas.aulavirtualapp.model.ForumDiscussionResponse
 import com.practicas.aulavirtualapp.network.RetrofitClient
 import retrofit2.Call
@@ -54,7 +55,7 @@ class ForumDetailActivity : AppCompatActivity() {
     private lateinit var tvEmpty: TextView
     private lateinit var tvSectionTitle: TextView
 
-    // Referencias para el Modo Escritura (Inline)
+    // Referencias para el Modo Escritura (Nuevo Tema)
     private lateinit var layoutListContainer: LinearLayout
     private lateinit var layoutCreateForm: LinearLayout
     private lateinit var etSubject: TextInputEditText
@@ -110,7 +111,7 @@ class ForumDetailActivity : AppCompatActivity() {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.setDisplayShowTitleEnabled(false)
         toolbar.setNavigationOnClickListener {
-            // UX: Si está escribiendo, el botón atrás cancela la escritura primero
+            // UX: Si está escribiendo tema nuevo, cancelar primero
             if (layoutCreateForm.visibility == View.VISIBLE) {
                 toggleWriteMode(false)
             } else {
@@ -124,9 +125,15 @@ class ForumDetailActivity : AppCompatActivity() {
         swipeRefresh.setColorSchemeColors(courseColor)
         btnSubmit.backgroundTintList = ColorStateList.valueOf(courseColor)
 
-        // 4. Configurar RecyclerView
-        adapter = DiscussionAdapter { discussion ->
-            Toast.makeText(this, "Abriendo hilo: ${discussion.name}", Toast.LENGTH_SHORT).show()
+        // 4. Configurar RecyclerView con Lógica de Respuesta
+        adapter = DiscussionAdapter { discussion, replyMessage ->
+            if (replyMessage == null) {
+                // Click normal -> Ver detalle del hilo (Navegación futura)
+                Toast.makeText(this, "Abriendo hilo completo...", Toast.LENGTH_SHORT).show()
+            } else {
+                // Mensaje presente -> Es una RESPUESTA rápida
+                postReply(discussion, replyMessage)
+            }
         }
         rv.layoutManager = LinearLayoutManager(this)
         rv.adapter = adapter
@@ -141,48 +148,53 @@ class ForumDetailActivity : AppCompatActivity() {
             performFullRefresh()
         }
 
-        // Acción del Botón Flotante (+) -> Activa modo escritura
+        // Botón Nuevo Tema
         fab.setOnClickListener {
             toggleWriteMode(true)
         }
 
-        // Acción Botón Cancelar
         btnCancel.setOnClickListener {
             toggleWriteMode(false)
         }
 
-        // Acción Botón Publicar
         btnSubmit.setOnClickListener {
-            postDiscussion()
+            postNewDiscussion() // Ojo: Nombre cambiado para distinguir de postReply
         }
     }
 
-    // --- FUNCIÓN CLAVE: Alternar entre Lista y Formulario ---
-    private fun toggleWriteMode(enable: Boolean) {
-        if (enable) {
-            // ACTIVAR ESCRITURA:
-            // Ocultamos la lista de debates
-            layoutListContainer.visibility = View.GONE
-            // Mostramos el formulario
-            layoutCreateForm.visibility = View.VISIBLE
-            // Ocultamos el FAB (ya estamos escribiendo)
-            fab.hide()
+    // --- FUNCIÓN 1: ENVIAR RESPUESTA A UN POST (REPLY) ---
+    private fun postReply(discussion: ForumDiscussion, message: String) {
+        val subject = "Re: ${discussion.name}"
+        Toast.makeText(this, "Enviando respuesta...", Toast.LENGTH_SHORT).show()
 
-            // Limpiamos y ponemos foco
-            etSubject.text?.clear()
-            etMessage.text?.clear()
-            etSubject.requestFocus()
-        } else {
-            // VOLVER A LECTURA:
-            layoutListContainer.visibility = View.VISIBLE
-            layoutCreateForm.visibility = View.GONE
+        RetrofitClient.instance.addDiscussionPost(
+            token = token,
+            postId = discussion.id, // ID del hilo/mensaje padre
+            subject = subject,
+            message = message
+        ).enqueue(object : Callback<AddDiscussionResponse> {
+            override fun onResponse(call: Call<AddDiscussionResponse>, response: Response<AddDiscussionResponse>) {
+                if (response.isSuccessful && response.body() != null) {
+                    val resp = response.body()!!
+                    // Moodle devuelve mensajes de éxito, podemos usarlos
+                    val msg = resp.messages?.firstOrNull()?.message ?: "¡Respuesta enviada!"
+                    Toast.makeText(applicationContext, msg, Toast.LENGTH_SHORT).show()
 
-            // Volvemos a chequear si mostramos el FAB (si no ha vencido y tiene permiso)
-            checkPermissionsAndDates()
-        }
+                    // Recargamos para ver el contador de respuestas aumentar
+                    performFullRefresh()
+                } else {
+                    Toast.makeText(applicationContext, "Error al enviar respuesta", Toast.LENGTH_SHORT).show()
+                }
+            }
+
+            override fun onFailure(call: Call<AddDiscussionResponse>, t: Throwable) {
+                Toast.makeText(applicationContext, "Fallo de conexión", Toast.LENGTH_SHORT).show()
+            }
+        })
     }
 
-    private fun postDiscussion() {
+    // --- FUNCIÓN 2: CREAR NUEVO TEMA (NEW DISCUSSION) ---
+    private fun postNewDiscussion() {
         val subject = etSubject.text.toString().trim()
         val message = etMessage.text.toString().trim()
 
@@ -194,7 +206,6 @@ class ForumDetailActivity : AppCompatActivity() {
         btnSubmit.isEnabled = false
         btnSubmit.text = "Enviando..."
 
-        // Usamos argumentos nombrados
         RetrofitClient.instance.addDiscussion(
             token = token,
             forumId = forum!!.id,
@@ -211,7 +222,6 @@ class ForumDetailActivity : AppCompatActivity() {
                         ?: "Publicado con éxito"
                     Toast.makeText(this@ForumDetailActivity, successMsg, Toast.LENGTH_LONG).show()
 
-                    // Ocultamos formulario y recargamos la lista
                     toggleWriteMode(false)
                     performFullRefresh()
                 } else {
@@ -225,6 +235,21 @@ class ForumDetailActivity : AppCompatActivity() {
                 Toast.makeText(this@ForumDetailActivity, "Error de conexión", Toast.LENGTH_SHORT).show()
             }
         })
+    }
+
+    private fun toggleWriteMode(enable: Boolean) {
+        if (enable) {
+            layoutListContainer.visibility = View.GONE
+            layoutCreateForm.visibility = View.VISIBLE
+            fab.hide()
+            etSubject.text?.clear()
+            etMessage.text?.clear()
+            etSubject.requestFocus()
+        } else {
+            layoutListContainer.visibility = View.VISIBLE
+            layoutCreateForm.visibility = View.GONE
+            checkPermissionsAndDates()
+        }
     }
 
     private fun updateForumUI() {
@@ -315,7 +340,6 @@ class ForumDetailActivity : AppCompatActivity() {
             return
         }
 
-        // Solo mostramos el FAB si NO estamos en modo escritura
         if (layoutCreateForm.visibility == View.VISIBLE) {
             fab.hide()
             return
@@ -328,7 +352,6 @@ class ForumDetailActivity : AppCompatActivity() {
                     if (response.isSuccessful) {
                         val perms = response.body()
                         val canPost = perms?.get("canstartdiscussion") as? Boolean ?: false
-                        // Verificar nuevamente visibilidad por si cambió rápido
                         if (canPost && !isExpired && layoutCreateForm.visibility != View.VISIBLE) {
                             fab.show()
                         }
