@@ -6,48 +6,55 @@
     android:layout_marginHorizontal="16dp"
     android:layout_marginVertical="8dp"
     app:cardCornerRadius="12dp"
-    app:cardElevation="4dp"
+    app:cardElevation="2dp"
     app:strokeColor="#E0E0E0"
     app:strokeWidth="1dp">
 
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:orientation="vertical"
         android:padding="16dp">
 
-        <ImageView
-            android:id="@+id/ivAuthor"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:background="@drawable/circle_background_light"
-            android:src="@drawable/ic_baseline_people_24"
-            android:padding="2dp"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
-
-        <TextView
-            android:id="@+id/tvAuthorName"
-            android:layout_width="0dp"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:layout_marginEnd="8dp"
-            android:text="Nombre Estudiante"
-            android:textColor="#000000"
-            android:textStyle="bold"
-            android:textSize="14sp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toEndOf="@id/ivAuthor"
-            app:layout_constraintTop_toTopOf="@id/ivAuthor" />
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
-        <TextView
-            android:id="@+id/tvDate"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="hace 2 horas"
-            android:textColor="#757575"
-            android:textSize="12sp"
-            app:layout_constraintStart_toStartOf="@id/tvAuthorName"
-            app:layout_constraintTop_toBottomOf="@id/tvAuthorName" />
+            <ImageView
+                android:id="@+id/ivAuthor"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="@drawable/circle_background_light"
+                android:padding="2dp"
+                android:src="@drawable/ic_baseline_people_24" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tvAuthorName"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Nombre Estudiante"
+                    android:textColor="#000000"
+                    android:textStyle="bold"
+                    android:textSize="14sp" />
+
+                <TextView
+                    android:id="@+id/tvDate"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="hace 2 horas"
+                    android:textColor="#757575"
+                    android:textSize="12sp" />
+            </LinearLayout>
+        </LinearLayout>
 
         <TextView
             android:id="@+id/tvSubject"
@@ -57,37 +64,31 @@
             android:text="Título del Debate"
             android:textColor="#212121"
             android:textSize="16sp"
-            android:textStyle="bold"
-            app:layout_constraintTop_toBottomOf="@id/ivAuthor" />
+            android:textStyle="bold" />
 
         <TextView
             android:id="@+id/tvMessageContent"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="Aquí va el contenido del mensaje del foro. Puede ser un poco largo..."
+            android:text="Contenido del mensaje..."
             android:textColor="#424242"
             android:textSize="14sp"
             android:maxLines="4"
-            android:ellipsize="end"
-            app:layout_constraintTop_toBottomOf="@id/tvSubject" />
+            android:ellipsize="end" />
+
         <View
-            android:id="@+id/divider"
             android:layout_width="match_parent"
             android:layout_height="1dp"
             android:layout_marginTop="12dp"
-            android:background="#EEEEEE"
-            app:layout_constraintTop_toBottomOf="@id/tvMessageContent" />
+            android:background="#EEEEEE" />
 
         <LinearLayout
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:gravity="center_vertical"
-            android:orientation="horizontal"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/divider">
+            android:orientation="horizontal">
 
             <ImageView
                 android:layout_width="16dp"
@@ -97,14 +98,70 @@
 
             <TextView
                 android:id="@+id/tvReplyCount"
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="4dp"
+                android:layout_weight="1"
                 android:text="0 respuestas"
                 android:textColor="#757575"
                 android:textSize="12sp"
                 android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/btnReply"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Responder"
+                android:textColor="@color/primary"
+                android:textStyle="bold"
+                android:textSize="13sp"
+                android:padding="8dp"
+                android:background="?attr/selectableItemBackground" />
         </LinearLayout>
 
-    </androidx.constraintlayout.widget.ConstraintLayout>
+        <LinearLayout
+            android:id="@+id/layoutReplyInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone"
+            android:background="#FAFAFA"
+            android:padding="12dp"
+            android:layout_marginTop="8dp">
+
+            <EditText
+                android:id="@+id/etReplyMessage"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Escribe tu respuesta..."
+                android:textSize="14sp"
+                android:background="@android:color/transparent"
+                android:minLines="2" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="end"
+                android:layout_marginTop="8dp">
+
+                <TextView
+                    android:id="@+id/btnCancelReply"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Cancelar"
+                    android:textColor="#D32F2F"
+                    android:padding="8dp"
+                    android:layout_marginEnd="8dp"/>
+
+                <Button
+                    android:id="@+id/btnSendReply"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:text="Enviar"
+                    android:textSize="12sp"/>
+            </LinearLayout>
+        </LinearLayout>
+
+    </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

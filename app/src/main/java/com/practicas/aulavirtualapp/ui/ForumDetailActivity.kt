@@ -17,7 +17,6 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.google.android.material.appbar.AppBarLayout
-import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -53,6 +52,15 @@ class ForumDetailActivity : AppCompatActivity() {
     private lateinit var fab: FloatingActionButton
     private lateinit var progressBar: ProgressBar
     private lateinit var tvEmpty: TextView
+    private lateinit var tvSectionTitle: TextView
+
+    // Referencias para el Modo Escritura (Inline)
+    private lateinit var layoutListContainer: LinearLayout
+    private lateinit var layoutCreateForm: LinearLayout
+    private lateinit var etSubject: TextInputEditText
+    private lateinit var etMessage: TextInputEditText
+    private lateinit var btnCancel: MaterialButton
+    private lateinit var btnSubmit: MaterialButton
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -60,7 +68,6 @@ class ForumDetailActivity : AppCompatActivity() {
 
         // 1. Recibir Datos
         token = intent.getStringExtra("USER_TOKEN") ?: ""
-        // Usamos serializable extra de forma segura o cast directo si es versión antigua
         forum = intent.getSerializableExtra("FORUM_DATA") as? Forum
         val defaultColor = ContextCompat.getColor(this, R.color.primary)
         courseColor = intent.getIntExtra("COURSE_COLOR", defaultColor)
@@ -86,6 +93,15 @@ class ForumDetailActivity : AppCompatActivity() {
         progressBar = findViewById(R.id.progressBar)
         tvEmpty = findViewById(R.id.tvEmpty)
         swipeRefresh = findViewById(R.id.swipeRefresh)
+        tvSectionTitle = findViewById(R.id.tvSectionTitle)
+
+        // Referencias del nuevo formulario
+        layoutListContainer = findViewById(R.id.layoutListContainer)
+        layoutCreateForm = findViewById(R.id.layoutCreateForm)
+        etSubject = findViewById(R.id.etSubject)
+        etMessage = findViewById(R.id.etMessage)
+        btnCancel = findViewById(R.id.btnCancel)
+        btnSubmit = findViewById(R.id.btnSubmit)
 
         val rv = findViewById<RecyclerView>(R.id.rvDiscussions)
 
@@ -93,13 +109,20 @@ class ForumDetailActivity : AppCompatActivity() {
         setSupportActionBar(toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.setDisplayShowTitleEnabled(false)
-        toolbar.setNavigationOnClickListener { finish() }
+        toolbar.setNavigationOnClickListener {
+            // UX: Si está escribiendo, el botón atrás cancela la escritura primero
+            if (layoutCreateForm.visibility == View.VISIBLE) {
+                toggleWriteMode(false)
+            } else {
+                finish()
+            }
+        }
 
         appBar.setBackgroundColor(courseColor)
         fab.backgroundTintList = ColorStateList.valueOf(courseColor)
-        // Nota: statusBarColor a veces requiere validación de versión, pero en API 21+ funciona directo
         window.statusBarColor = courseColor
         swipeRefresh.setColorSchemeColors(courseColor)
+        btnSubmit.backgroundTintList = ColorStateList.valueOf(courseColor)
 
         // 4. Configurar RecyclerView
         adapter = DiscussionAdapter { discussion ->
@@ -113,15 +136,95 @@ class ForumDetailActivity : AppCompatActivity() {
         loadDiscussions(isRefreshing = false)
         checkPermissionsAndDates()
 
-        // 6. Swipe Refresh
+        // 6. Listeners
         swipeRefresh.setOnRefreshListener {
             performFullRefresh()
         }
 
-        // 7. Botón Crear
+        // Acción del Botón Flotante (+) -> Activa modo escritura
         fab.setOnClickListener {
-            showCreateDiscussionDialog()
+            toggleWriteMode(true)
         }
+
+        // Acción Botón Cancelar
+        btnCancel.setOnClickListener {
+            toggleWriteMode(false)
+        }
+
+        // Acción Botón Publicar
+        btnSubmit.setOnClickListener {
+            postDiscussion()
+        }
+    }
+
+    // --- FUNCIÓN CLAVE: Alternar entre Lista y Formulario ---
+    private fun toggleWriteMode(enable: Boolean) {
+        if (enable) {
+            // ACTIVAR ESCRITURA:
+            // Ocultamos la lista de debates
+            layoutListContainer.visibility = View.GONE
+            // Mostramos el formulario
+            layoutCreateForm.visibility = View.VISIBLE
+            // Ocultamos el FAB (ya estamos escribiendo)
+            fab.hide()
+
+            // Limpiamos y ponemos foco
+            etSubject.text?.clear()
+            etMessage.text?.clear()
+            etSubject.requestFocus()
+        } else {
+            // VOLVER A LECTURA:
+            layoutListContainer.visibility = View.VISIBLE
+            layoutCreateForm.visibility = View.GONE
+
+            // Volvemos a chequear si mostramos el FAB (si no ha vencido y tiene permiso)
+            checkPermissionsAndDates()
+        }
+    }
+
+    private fun postDiscussion() {
+        val subject = etSubject.text.toString().trim()
+        val message = etMessage.text.toString().trim()
+
+        if (TextUtils.isEmpty(subject) || TextUtils.isEmpty(message)) {
+            Toast.makeText(this, "Completa todos los campos", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        btnSubmit.isEnabled = false
+        btnSubmit.text = "Enviando..."
+
+        // Usamos argumentos nombrados
+        RetrofitClient.instance.addDiscussion(
+            token = token,
+            forumId = forum!!.id,
+            subject = subject,
+            message = message
+        ).enqueue(object : Callback<AddDiscussionResponse> {
+            override fun onResponse(call: Call<AddDiscussionResponse>, response: Response<AddDiscussionResponse>) {
+                btnSubmit.isEnabled = true
+                btnSubmit.text = "Publicar"
+
+                if (response.isSuccessful && response.body() != null) {
+                    val resp = response.body()!!
+                    val successMsg = resp.messages?.firstOrNull { it.type == "success" }?.message
+                        ?: "Publicado con éxito"
+                    Toast.makeText(this@ForumDetailActivity, successMsg, Toast.LENGTH_LONG).show()
+
+                    // Ocultamos formulario y recargamos la lista
+                    toggleWriteMode(false)
+                    performFullRefresh()
+                } else {
+                    Toast.makeText(this@ForumDetailActivity, "Error al publicar", Toast.LENGTH_SHORT).show()
+                }
+            }
+
+            override fun onFailure(call: Call<AddDiscussionResponse>, t: Throwable) {
+                btnSubmit.isEnabled = true
+                btnSubmit.text = "Publicar"
+                Toast.makeText(this@ForumDetailActivity, "Error de conexión", Toast.LENGTH_SHORT).show()
+            }
+        })
     }
 
     private fun updateForumUI() {
@@ -155,8 +258,6 @@ class ForumDetailActivity : AppCompatActivity() {
     }
 
     private fun performFullRefresh() {
-        // CORRECCIÓN AQUÍ: Usamos argumentos nombrados (token = ..., courseId = ...)
-        // para evitar confusión con los parámetros por defecto de la interfaz
         RetrofitClient.instance.getForumsByCourse(token = token, courseId = forum!!.courseId)
             .enqueue(object : Callback<List<Forum>> {
                 override fun onResponse(call: Call<List<Forum>>, response: Response<List<Forum>>) {
@@ -181,7 +282,6 @@ class ForumDetailActivity : AppCompatActivity() {
         if (!isRefreshing) progressBar.visibility = View.VISIBLE
         tvEmpty.visibility = View.GONE
 
-        // Usamos argumentos nombrados por seguridad
         RetrofitClient.instance.getForumDiscussions(token = token, forumId = forum!!.id)
             .enqueue(object : Callback<ForumDiscussionResponse> {
                 override fun onResponse(call: Call<ForumDiscussionResponse>, response: Response<ForumDiscussionResponse>) {
@@ -215,77 +315,27 @@ class ForumDetailActivity : AppCompatActivity() {
             return
         }
 
+        // Solo mostramos el FAB si NO estamos en modo escritura
+        if (layoutCreateForm.visibility == View.VISIBLE) {
+            fab.hide()
+            return
+        }
+
         fab.hide()
-        // Argumentos nombrados
         RetrofitClient.instance.getForumAccess(token = token, forumId = forum!!.id)
             .enqueue(object : Callback<Map<String, Any>> {
                 override fun onResponse(call: Call<Map<String, Any>>, response: Response<Map<String, Any>>) {
                     if (response.isSuccessful) {
                         val perms = response.body()
                         val canPost = perms?.get("canstartdiscussion") as? Boolean ?: false
-                        if (canPost && !isExpired) {
+                        // Verificar nuevamente visibilidad por si cambió rápido
+                        if (canPost && !isExpired && layoutCreateForm.visibility != View.VISIBLE) {
                             fab.show()
                         }
                     }
                 }
                 override fun onFailure(call: Call<Map<String, Any>>, t: Throwable) {}
             })
-    }
-
-    private fun showCreateDiscussionDialog() {
-        val dialog = BottomSheetDialog(this)
-        val view = layoutInflater.inflate(R.layout.dialog_create_discussion, null)
-        dialog.setContentView(view)
-
-        val etSubject = view.findViewById<TextInputEditText>(R.id.etSubject)
-        val etMessage = view.findViewById<TextInputEditText>(R.id.etMessage)
-        val btnPost = view.findViewById<MaterialButton>(R.id.btnPost)
-
-        btnPost.backgroundTintList = ColorStateList.valueOf(courseColor)
-
-        btnPost.setOnClickListener {
-            val subject = etSubject.text.toString().trim()
-            val message = etMessage.text.toString().trim()
-
-            if (TextUtils.isEmpty(subject) || TextUtils.isEmpty(message)) {
-                Toast.makeText(this, "Completa todos los campos", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-
-            btnPost.isEnabled = false
-            btnPost.text = "Enviando..."
-
-            // CORRECCIÓN PRINCIPAL AQUÍ: Usamos argumentos nombrados
-            RetrofitClient.instance.addDiscussion(
-                token = token,
-                forumId = forum!!.id,
-                subject = subject,
-                message = message
-            ).enqueue(object : Callback<AddDiscussionResponse> {
-                override fun onResponse(call: Call<AddDiscussionResponse>, response: Response<AddDiscussionResponse>) {
-                    if (response.isSuccessful && response.body() != null) {
-                        val resp = response.body()!!
-                        val successMsg = resp.messages?.firstOrNull { it.type == "success" }?.message
-                            ?: "Publicado con éxito"
-                        Toast.makeText(this@ForumDetailActivity, successMsg, Toast.LENGTH_LONG).show()
-
-                        dialog.dismiss()
-                        performFullRefresh()
-                    } else {
-                        btnPost.isEnabled = true
-                        btnPost.text = "Publicar en el foro"
-                        Toast.makeText(this@ForumDetailActivity, "Error al publicar", Toast.LENGTH_SHORT).show()
-                    }
-                }
-
-                override fun onFailure(call: Call<AddDiscussionResponse>, t: Throwable) {
-                    btnPost.isEnabled = true
-                    btnPost.text = "Publicar en el foro"
-                    Toast.makeText(this@ForumDetailActivity, "Error de conexión", Toast.LENGTH_SHORT).show()
-                }
-            })
-        }
-        dialog.show()
     }
 
     private fun getForumTypeMessage(type: String?): String {

@@ -208,9 +208,9 @@ interface MoodleApiService {
         @Field("postid") postId: Int,
         @Field("subject") subject: String,
         @Field("message") message: String
-    ): Call<Map<String, Any>> // Devuelve postid
+    ): Call<AddDiscussionResponse>
 
-    // Verificar permisos (Semáforo)
+    // Verificar permisps- futura mejora para docente
     @FormUrlEncoded
     @POST("webservice/rest/server.php")
     fun getForumAccess(
