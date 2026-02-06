@@ -36,7 +36,8 @@ class CourseOverviewFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val tvCourseShort = view.findViewById<TextView>(R.id.tvOverviewCourseShort)
+        // ELIMINADO: val tvCourseShort = view.findViewById<TextView>(R.id.tvOverviewCourseShort) (No existe en tu XML)
+
         val tvSummary = view.findViewById<TextView>(R.id.tvOverviewSummary)
         val tvSectionsCount = view.findViewById<TextView>(R.id.tvOverviewSectionsCount)
         val tvActivitiesCount = view.findViewById<TextView>(R.id.tvOverviewActivitiesCount)
@@ -53,7 +54,7 @@ class CourseOverviewFragment : Fragment() {
         val courseId = arguments?.getInt("COURSE_ID") ?: 0
         val token = arguments?.getString("USER_TOKEN")
 
-        tvCourseShort.text = courseShortName.ifBlank { "Código del curso no disponible" }
+        // ELIMINADO: tvCourseShort.text = ...
 
         viewModel = ViewModelProvider(requireActivity())[CourseContentViewModel::class.java]
         participantsViewModel = ViewModelProvider(requireActivity())[CourseParticipantsViewModel::class.java]

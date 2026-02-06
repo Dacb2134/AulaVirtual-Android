@@ -245,7 +245,18 @@ interface MoodleApiService {
         @Field("wsfunction") function: String = "mod_forum_get_forum_access_information",
         @Field("moodlewsrestformat") format: String = "json",
         @Field("forumid") forumId: Int
-    ): Call<Map<String, Any>> // Devuelve mapa de permisos (canstartdiscussion, etc)
+    ): Call<Map<String, Any>>
+
+    // Forzar cambio de contraseña para obtener el token real del usuario
+    @FormUrlEncoded
+    @POST("webservice/rest/server.php")
+    fun updateUserPassword(
+        @Field("wstoken") token: String,
+        @Field("wsfunction") function: String = "core_user_update_users",
+        @Field("moodlewsrestformat") format: String = "json",
+        @Field("users[0][id]") userId: Int,
+        @Field("users[0][password]") newPassword: String
+    ): Call<Any>
 
 
 
