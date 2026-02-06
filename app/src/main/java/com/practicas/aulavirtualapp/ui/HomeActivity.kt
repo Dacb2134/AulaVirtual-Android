@@ -8,11 +8,11 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.practicas.aulavirtualapp.R
 import com.practicas.aulavirtualapp.ui.AgendaFragment
 import com.practicas.aulavirtualapp.ui.GradesFragment
 import com.practicas.aulavirtualapp.ui.HomeFragment
 import com.practicas.aulavirtualapp.ui.ProfileFragment
-import com.practicas.aulavirtualapp.R
 
 open class HomeActivity : AppCompatActivity() {
 
@@ -32,15 +32,22 @@ open class HomeActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_home)
 
+        val token = intent.getStringExtra("USER_TOKEN")
+        val userId = intent.getIntExtra("USER_ID", 0)
+
+        if (token.isNullOrEmpty() || userId == 0) {
+            Toast.makeText(this, "Error de sesión. Reingrese.", Toast.LENGTH_LONG).show()
+            finish()
+            return
+        }
+
         val bottomNav = findViewById<BottomNavigationView>(R.id.bottomNavigation)
         requestStoragePermissionIfNeeded()
 
-        // mostramos HomeFragme
         if (savedInstanceState == null) {
             cambiarFragmento(HomeFragment())
         }
 
-        // Configurar los botones del menú
         bottomNav.setOnItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.nav_home -> cambiarFragmento(HomeFragment())
