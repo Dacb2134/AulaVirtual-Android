@@ -44,14 +44,10 @@ class CourseDetailActivity : AppCompatActivity() {
 
         val header = findViewById<android.view.View>(R.id.viewHeader)
         val tvTitle = findViewById<TextView>(R.id.tvCourseTitle)
-
-        // ELIMINADO: val tvSubtitle = findViewById<TextView>(R.id.tvCourseSubtitle) (No existe en tu XML)
-
         val btnBack = findViewById<ImageButton>(R.id.btnCourseBack)
         val bottomNav = findViewById<BottomNavigationView>(R.id.bottomNavigationCourse)
 
         tvTitle.text = courseName
-        // ELIMINADO: tvSubtitle.text = ...
 
         if (courseColor != 0) header.setBackgroundColor(courseColor)
 
