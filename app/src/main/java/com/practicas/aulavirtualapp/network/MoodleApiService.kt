@@ -5,6 +5,9 @@ import com.practicas.aulavirtualapp.model.BadgeResponse
 import com.practicas.aulavirtualapp.model.Course
 import com.practicas.aulavirtualapp.model.CourseSection
 import com.practicas.aulavirtualapp.model.EnrolledUser
+import com.practicas.aulavirtualapp.model.Forum
+import com.practicas.aulavirtualapp.model.ForumDiscussionResponse
+import com.practicas.aulavirtualapp.model.ForumPostResponse
 import com.practicas.aulavirtualapp.model.GradeReportResponse
 import com.practicas.aulavirtualapp.model.MoodleUploadFile
 import com.practicas.aulavirtualapp.model.OAuthTokenResponse
@@ -147,4 +150,75 @@ interface MoodleApiService {
         @Query("wsfunction") function: String = "core_user_get_private_files_info",
         @Query("moodlewsrestformat") format: String = "json"
     ): Call<PrivateFilesInfo>
+
+    // --- ZONA DE FOROS ---
+
+    // 1. Obtener foros del curso
+    @FormUrlEncoded
+    @POST("webservice/rest/server.php")
+    fun getForumsByCourse(
+        @Field("wstoken") token: String,
+        @Field("wsfunction") function: String = "mod_forum_get_forums_by_courses",
+        @Field("moodlewsrestformat") format: String = "json",
+        @Field("courseids[0]") courseId: Int
+    ): Call<List<Forum>>
+
+    //  Obtener discusiones de un foro
+    @FormUrlEncoded
+    @POST("webservice/rest/server.php")
+    fun getForumDiscussions(
+        @Field("wstoken") token: String,
+        @Field("wsfunction") function: String = "mod_forum_get_forum_discussions",
+        @Field("moodlewsrestformat") format: String = "json",
+        @Field("forumid") forumId: Int,
+        @Field("sortorder") sortOrder: Int = 1 // 1 = Más recientes primero
+    ): Call<ForumDiscussionResponse>
+
+    //  Obtener los posts de una discusión (el chat completo)
+    @FormUrlEncoded
+    @POST("webservice/rest/server.php")
+    fun getDiscussionPosts(
+        @Field("wstoken") token: String,
+        @Field("wsfunction") function: String = "mod_forum_get_discussion_posts",
+        @Field("moodlewsrestformat") format: String = "json",
+        @Field("discussionid") discussionId: Int
+    ): Call<ForumPostResponse>
+
+    // Crear nueva discusión
+    @FormUrlEncoded
+    @POST("webservice/rest/server.php")
+    fun addDiscussion(
+        @Field("wstoken") token: String,
+        @Field("wsfunction") function: String = "mod_forum_add_discussion",
+        @Field("moodlewsrestformat") format: String = "json",
+        @Field("forumid") forumId: Int,
+        @Field("subject") subject: String,
+        @Field("message") message: String
+    ): Call<Map<String, Any>>
+
+    //  Responder a un post
+    @FormUrlEncoded
+    @POST("webservice/rest/server.php")
+    fun addDiscussionPost(
+        @Field("wstoken") token: String,
+        @Field("wsfunction") function: String = "mod_forum_add_discussion_post",
+        @Field("moodlewsrestformat") format: String = "json",
+        @Field("postid") postId: Int,
+        @Field("subject") subject: String,
+        @Field("message") message: String
+    ): Call<Map<String, Any>> // Devuelve postid
+
+    // Verificar permisos (Semáforo)
+    @FormUrlEncoded
+    @POST("webservice/rest/server.php")
+    fun getForumAccess(
+        @Field("wstoken") token: String,
+        @Field("wsfunction") function: String = "mod_forum_get_forum_access_information",
+        @Field("moodlewsrestformat") format: String = "json",
+        @Field("forumid") forumId: Int
+    ): Call<Map<String, Any>> // Devuelve mapa de permisos (canstartdiscussion, etc)
+
+
+
+
 }

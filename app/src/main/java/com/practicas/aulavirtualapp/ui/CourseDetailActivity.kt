@@ -32,6 +32,7 @@ class CourseDetailActivity : AppCompatActivity() {
             return
         }
 
+        // Empaquetamos los datos para pasarlos a los fragmentos
         courseArgs = bundleOf(
             "COURSE_ID" to courseId,
             "COURSE_NAME" to courseName,
@@ -53,16 +54,19 @@ class CourseDetailActivity : AppCompatActivity() {
 
         btnBack.setOnClickListener { finish() }
 
+        // Cargar fragmento inicial
         if (savedInstanceState == null) {
             cambiarFragmento(CourseOverviewFragment())
             bottomNav.selectedItemId = R.id.nav_course_overview
         }
 
+        // Configurar navegación inferior
         bottomNav.setOnItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.nav_course_overview -> cambiarFragmento(CourseOverviewFragment())
                 R.id.nav_course_content -> cambiarFragmento(CourseContentFragment())
                 R.id.nav_course_assignments -> cambiarFragmento(CourseAssignmentsFragment())
+                R.id.nav_course_forum -> cambiarFragmento(CourseForumsFragment())
                 R.id.nav_course_grades -> cambiarFragmento(CourseGradesFragment())
             }
             true
@@ -70,7 +74,9 @@ class CourseDetailActivity : AppCompatActivity() {
     }
 
     private fun cambiarFragmento(fragment: Fragment) {
+        // Le pasamos siempre los argumentos (Token, ID curso, Color)
         fragment.arguments = Bundle(courseArgs)
+
         supportFragmentManager.beginTransaction()
             .replace(R.id.course_nav_host, fragment)
             .commit()
