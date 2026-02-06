@@ -5,6 +5,7 @@ import java.io.Serializable
 
 data class Forum(
     val id: Int,
+    @SerializedName("course") val courseId: Int,
     @SerializedName("type") val type: String, // "news", "general", "qanda", etc.
     @SerializedName("name") val name: String,
     @SerializedName("intro") val intro: String, // Viene en HTML
