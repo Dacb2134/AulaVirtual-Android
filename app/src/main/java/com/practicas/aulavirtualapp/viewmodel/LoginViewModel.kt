@@ -18,14 +18,17 @@ class LoginViewModel : ViewModel() {
 
     private val repository = AuthRepository()
 
-    // token de Administrador
+    // Token de Administrador
     private val MASTER_TOKEN = "89178c549fdf4b2268e338271c1161a4"
+
+    // Contraseña puente para usuarios Google
+    private val GOOGLE_USER_PASS = "MoodleGoogle2026!"
 
     val resultadoLogin = MutableLiveData<LoginResult?>()
     val error = MutableLiveData<String>()
     val cargando = MutableLiveData<Boolean>()
 
-    //LOGIN MANUAL
+    // LOGIN MANUAL
     fun realizarLogin(user: String, pass: String) {
         cargando.value = true
         repository.login(user, pass).enqueue(object : Callback<TokenResponse> {
@@ -61,7 +64,6 @@ class LoginViewModel : ViewModel() {
     }
 
     // LOGIN CON GOOGLE
-
     fun realizarLoginGoogle(email: String, displayName: String) {
         cargando.value = true
 
@@ -71,10 +73,10 @@ class LoginViewModel : ViewModel() {
                 val users = response.body()
 
                 if (response.isSuccessful && !users.isNullOrEmpty()) {
-                    // CASO A: YA EXISTE -> Entramos directo
-                    finalizarLoginExitoso(users[0])
+                    // CASO A: YA EXISTE -> Vamos por su token REAL (no el del admin)
+                    obtenerTokenReal(users[0], email)
                 } else {
-                    // CASO B: NO EXISTE -> Lo creamos (Auto-registro)
+                    // CASO B: NO EXISTE -> Lo creamos y luego vamos por su token
                     crearUsuarioEnMoodle(email, displayName)
                 }
             }
@@ -89,9 +91,9 @@ class LoginViewModel : ViewModel() {
         repository.registerUser(MASTER_TOKEN, email, displayName).enqueue(object : Callback<List<UserDetail>> {
             override fun onResponse(call: Call<List<UserDetail>>, response: Response<List<UserDetail>>) {
                 if (response.isSuccessful && !response.body().isNullOrEmpty()) {
-                    // ¡CREADO! -> Entramos con el nuevo usuario
+                    // ¡CREADO! -> Ahora obtenemos su token real
                     val nuevoUsuario = response.body()!![0]
-                    finalizarLoginExitoso(nuevoUsuario)
+                    obtenerTokenReal(nuevoUsuario, email)
                 } else {
                     cargando.value = false
                     error.value = "No se pudo registrar. Verifique permisos 'create_users' en Moodle."
@@ -104,17 +106,45 @@ class LoginViewModel : ViewModel() {
         })
     }
 
-    private fun finalizarLoginExitoso(usuario: UserDetail) {
-        cargando.value = false
+    // : Obtenemos el token DEL USUARIO,
+    private fun obtenerTokenReal(usuario: UserDetail, email: String) {
 
-        // Lógica simple de roles: ID 2 es Admin, el resto Estudiantes.
-        val rol = if (usuario.id == 2) UserRole.ADMIN else UserRole.ESTUDIANTE
+        // Paso A: Aseguramos que la contraseña sea la que conocemos
+        repository.forcePasswordUpdate(MASTER_TOKEN, usuario.id, GOOGLE_USER_PASS).enqueue(object : Callback<Any> {
+            override fun onResponse(call: Call<Any>, response: Response<Any>) {
+                // Paso B: Nos logueamos como ÉL para sacar SU token
+                hacerLoginComoUsuario(usuario, email)
+            }
 
-        resultadoLogin.value = LoginResult(
-            token = MASTER_TOKEN,
-            userId = usuario.id,
-            role = rol
-        )
+            override fun onFailure(call: Call<Any>, t: Throwable) {
+                // Si falla el update (red), intentamos loguear igual por si ya tenía esa pass
+                hacerLoginComoUsuario(usuario, email)
+            }
+        })
+    }
+
+    private fun hacerLoginComoUsuario(usuario: UserDetail, email: String) {
+        // Usamos el email como username y la contraseña fija
+        repository.login(email, GOOGLE_USER_PASS).enqueue(object : Callback<TokenResponse> {
+            override fun onResponse(call: Call<TokenResponse>, response: Response<TokenResponse>) {
+                cargando.value = false
+                if (response.isSuccessful && response.body()?.token != null) {
+                    val userToken = response.body()!!.token
+
+                    // Lógica de roles
+                    val rol = if (usuario.id == 2) UserRole.ADMIN else UserRole.ESTUDIANTE
+
+                    // ¡ÉXITO! Devolvemos el token DEL ESTUDIANTE
+                    resultadoLogin.value = LoginResult(userToken, usuario.id, rol)
+                } else {
+                    error.value = "No se pudo obtener sesión del usuario."
+                }
+            }
+            override fun onFailure(call: Call<TokenResponse>, t: Throwable) {
+                cargando.value = false
+                error.value = "Fallo final: ${t.message}"
+            }
+        })
     }
 
     //  (Login Manual) ---

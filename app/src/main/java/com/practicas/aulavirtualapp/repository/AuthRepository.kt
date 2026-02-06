@@ -91,7 +91,6 @@ class AuthRepository {
 
     // FUNCIONES PARA GOOGLE  ---
 
-
     // 1. Verificar si el email ya existe en Moodle
     fun checkUserExists(masterToken: String, email: String): Call<List<UserDetail>> {
         return apiService.getUserByEmail(masterToken, "core_user_get_users_by_field", "json", "email", email)
@@ -103,16 +102,21 @@ class AuthRepository {
         val firstName = parts.firstOrNull() ?: "Usuario"
         val lastName = if (parts.size > 1) parts.drop(1).joinToString(" ") else "Google"
 
-        // Contraseña técnica (usuario entra con Google, no necesita saberla)
-        val dummyPass = "GoogleUser_2026!${System.currentTimeMillis()}"
+        // Usamos la contraseña fija para poder hacer login automático después
+        val fixedPass = "MoodleGoogle2026!"
 
         return apiService.createUser(
             token = masterToken,
             username = email.lowercase(),
-            password = dummyPass,
+            password = fixedPass,
             firstName = firstName,
             lastName = lastName,
             email = email
         )
+    }
+
+    // 3. Forzar cambio de contraseña (NUEVO)
+    fun forcePasswordUpdate(masterToken: String, userId: Int, newPass: String): Call<Any> {
+        return apiService.updateUserPassword(masterToken, userId = userId, newPassword = newPass)
     }
 }
