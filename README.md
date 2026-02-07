@@ -3,7 +3,7 @@
 ![Platform](https://img.shields.io/badge/Platform-Android-green)
 ![Language](https://img.shields.io/badge/Language-Kotlin-orange)
 ![Architecture](https://img.shields.io/badge/Architecture-MVVM-blue)
-![Status](https://img.shields.io/badge/Status-Release_Candidate-brightgreen)
+
 
 ## 📖 Descripción del Proyecto
 
