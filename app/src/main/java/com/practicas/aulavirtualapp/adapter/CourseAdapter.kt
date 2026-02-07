@@ -12,7 +12,7 @@ import androidx.cardview.widget.CardView
 import androidx.recyclerview.widget.RecyclerView
 import com.practicas.aulavirtualapp.ColorGenerator
 import com.practicas.aulavirtualapp.R
-import com.practicas.aulavirtualapp.model.Course
+import com.practicas.aulavirtualapp.model.course.Course
 
 // 👇 CAMBIO 1: Añadimos 'onCourseClick' al constructor
 class CourseAdapter(

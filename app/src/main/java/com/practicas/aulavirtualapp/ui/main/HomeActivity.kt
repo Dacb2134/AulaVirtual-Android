@@ -1,0 +1,78 @@
+package com.practicas.aulavirtualapp.ui.main
+
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import android.os.Bundle
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
+import androidx.fragment.app.Fragment
+import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.practicas.aulavirtualapp.R
+import com.practicas.aulavirtualapp.ui.assignment.AgendaFragment
+import com.practicas.aulavirtualapp.ui.grades.GradesFragment
+import com.practicas.aulavirtualapp.ui.main.HomeFragment
+import com.practicas.aulavirtualapp.ui.profile.ProfileFragment
+
+open class HomeActivity : AppCompatActivity() {
+
+    private val permissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (!granted) {
+            Toast.makeText(
+                this,
+                "Permiso denegado. Puedes habilitarlo más tarde desde ajustes.",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_home)
+
+        val token = intent.getStringExtra("USER_TOKEN")
+        val userId = intent.getIntExtra("USER_ID", 0)
+
+        if (token.isNullOrEmpty() || userId == 0) {
+            Toast.makeText(this, "Error de sesión. Reingrese.", Toast.LENGTH_LONG).show()
+            finish()
+            return
+        }
+
+        val bottomNav = findViewById<BottomNavigationView>(R.id.bottomNavigation)
+        requestStoragePermissionIfNeeded()
+
+        if (savedInstanceState == null) {
+            cambiarFragmento(HomeFragment())
+        }
+
+        bottomNav.setOnItemSelectedListener { item ->
+            when (item.itemId) {
+                R.id.nav_home -> cambiarFragmento(HomeFragment())
+                R.id.nav_agenda -> cambiarFragmento(AgendaFragment())
+                R.id.nav_grades -> cambiarFragmento(GradesFragment())
+                R.id.nav_profile -> cambiarFragmento(ProfileFragment())
+            }
+            true
+        }
+    }
+
+    private fun cambiarFragmento(fragment: Fragment) {
+        supportFragmentManager.beginTransaction()
+            .replace(R.id.nav_host_fragment, fragment)
+            .commit()
+    }
+
+    private fun requestStoragePermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            return
+        }
+        val permission = Manifest.permission.READ_EXTERNAL_STORAGE
+        if (checkSelfPermission(permission) != PackageManager.PERMISSION_GRANTED) {
+            permissionLauncher.launch(permission)
+        }
+    }
+}

@@ -3,8 +3,8 @@ package com.practicas.aulavirtualapp.viewmodel
 import android.util.Log
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import com.practicas.aulavirtualapp.model.Assignment
-import com.practicas.aulavirtualapp.model.AssignmentResponse
+import com.practicas.aulavirtualapp.model.assignment.Assignment
+import com.practicas.aulavirtualapp.model.assignment.AssignmentResponse
 import com.practicas.aulavirtualapp.repository.AuthRepository
 import retrofit2.Call
 import retrofit2.Callback

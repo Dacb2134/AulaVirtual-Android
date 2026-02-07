@@ -2,8 +2,8 @@ package com.practicas.aulavirtualapp.viewmodel
 
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import com.practicas.aulavirtualapp.model.Course
-import com.practicas.aulavirtualapp.model.UserDetail
+import com.practicas.aulavirtualapp.model.course.Course
+import com.practicas.aulavirtualapp.model.auth.UserDetail
 import com.practicas.aulavirtualapp.repository.AuthRepository
 import retrofit2.Call
 import retrofit2.Callback

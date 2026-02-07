@@ -6,7 +6,7 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.practicas.aulavirtualapp.R
-import com.practicas.aulavirtualapp.model.CourseGradeRow
+import com.practicas.aulavirtualapp.model.course.CourseGradeRow
 
 class CourseGradeAdapter(
     private var rows: List<CourseGradeRow> = emptyList()

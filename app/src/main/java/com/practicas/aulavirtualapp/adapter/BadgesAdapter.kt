@@ -8,7 +8,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.practicas.aulavirtualapp.R
-import com.practicas.aulavirtualapp.model.Badge
+import com.practicas.aulavirtualapp.model.user.Badge
 import java.text.SimpleDateFormat
 import java.util.*
 

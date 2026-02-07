@@ -4,13 +4,13 @@ import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import com.practicas.aulavirtualapp.model.Badge
-import com.practicas.aulavirtualapp.model.BadgeResponse
+import com.practicas.aulavirtualapp.model.user.Badge
+import com.practicas.aulavirtualapp.model.user.BadgeResponse
 // 👇 IMPORTANTE: Importamos el nuevo modelo de información de archivos
-import com.practicas.aulavirtualapp.network.PrivateFilesInfo
+import com.practicas.aulavirtualapp.model.user.PrivateFilesInfo
 import com.practicas.aulavirtualapp.model.SiteInfoResponse
-import com.practicas.aulavirtualapp.model.UserDetail
-import com.practicas.aulavirtualapp.model.UserRole
+import com.practicas.aulavirtualapp.model.auth.UserDetail
+import com.practicas.aulavirtualapp.model.auth.UserRole
 import com.practicas.aulavirtualapp.repository.AuthRepository
 import com.practicas.aulavirtualapp.utils.UserRoleResolver
 import retrofit2.Call

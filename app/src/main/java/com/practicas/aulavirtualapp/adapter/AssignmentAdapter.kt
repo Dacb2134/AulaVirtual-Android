@@ -8,7 +8,7 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.practicas.aulavirtualapp.R
-import com.practicas.aulavirtualapp.model.Assignment
+import com.practicas.aulavirtualapp.model.assignment.Assignment
 import java.text.SimpleDateFormat
 import java.util.*
 

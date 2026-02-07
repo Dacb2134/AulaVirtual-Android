@@ -1,8 +1,8 @@
 package com.practicas.aulavirtualapp.utils
 
 import com.practicas.aulavirtualapp.model.SiteInfoResponse
-import com.practicas.aulavirtualapp.model.UserDetail
-import com.practicas.aulavirtualapp.model.UserRole
+import com.practicas.aulavirtualapp.model.auth.UserDetail
+import com.practicas.aulavirtualapp.model.auth.UserRole
 
 object UserRoleResolver {
 

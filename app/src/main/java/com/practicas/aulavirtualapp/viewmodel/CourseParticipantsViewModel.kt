@@ -3,7 +3,7 @@ package com.practicas.aulavirtualapp.viewmodel
 import android.util.Log
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import com.practicas.aulavirtualapp.model.EnrolledUser
+import com.practicas.aulavirtualapp.model.user.EnrolledUser
 import com.practicas.aulavirtualapp.repository.AuthRepository
 import retrofit2.Call
 import retrofit2.Callback
