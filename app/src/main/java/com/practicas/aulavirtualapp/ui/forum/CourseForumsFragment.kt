@@ -94,7 +94,7 @@ class CourseForumsFragment : Fragment(R.layout.fragment_course_forums) {
                             adapter.updateData(forums)
                         } else {
                             tvEmpty.visibility = View.VISIBLE
-                            // Limpiamos el adaptador por si antes había datos y ahora no
+
                             adapter.updateData(emptyList())
                         }
                     } else {
