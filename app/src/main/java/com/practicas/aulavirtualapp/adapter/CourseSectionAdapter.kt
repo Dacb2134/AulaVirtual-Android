@@ -8,8 +8,8 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.practicas.aulavirtualapp.R
-import com.practicas.aulavirtualapp.model.CourseModule
-import com.practicas.aulavirtualapp.model.CourseSection
+import com.practicas.aulavirtualapp.model.course.CourseModule
+import com.practicas.aulavirtualapp.model.course.CourseSection
 
 class CourseSectionAdapter(
     private var sections: List<CourseSection> = emptyList()

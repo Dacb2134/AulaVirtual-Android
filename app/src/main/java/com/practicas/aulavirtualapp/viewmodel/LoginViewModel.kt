@@ -2,11 +2,11 @@ package com.practicas.aulavirtualapp.viewmodel
 
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import com.practicas.aulavirtualapp.model.LoginResult
-import com.practicas.aulavirtualapp.model.OAuthTokenResponse
+import com.practicas.aulavirtualapp.model.auth.LoginResult
+import com.practicas.aulavirtualapp.model.auth.OAuthTokenResponse
 import com.practicas.aulavirtualapp.model.SiteInfoResponse
-import com.practicas.aulavirtualapp.model.UserDetail
-import com.practicas.aulavirtualapp.model.UserRole
+import com.practicas.aulavirtualapp.model.auth.UserDetail
+import com.practicas.aulavirtualapp.model.auth.UserRole
 import com.practicas.aulavirtualapp.network.TokenResponse
 import com.practicas.aulavirtualapp.repository.AuthRepository
 import com.practicas.aulavirtualapp.utils.UserRoleResolver

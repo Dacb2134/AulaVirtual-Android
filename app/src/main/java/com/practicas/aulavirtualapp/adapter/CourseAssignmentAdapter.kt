@@ -8,7 +8,7 @@ import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
 import com.practicas.aulavirtualapp.R
-import com.practicas.aulavirtualapp.model.Assignment
+import com.practicas.aulavirtualapp.model.assignment.Assignment
 
 sealed class CourseAssignmentRow {
     data class Header(val title: String, val subtitle: String? = null) : CourseAssignmentRow()

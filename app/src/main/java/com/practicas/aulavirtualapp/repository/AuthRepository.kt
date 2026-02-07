@@ -2,7 +2,17 @@ package com.practicas.aulavirtualapp.repository
 
 import android.util.Log
 import com.practicas.aulavirtualapp.model.*
-import com.practicas.aulavirtualapp.network.PrivateFilesInfo
+import com.practicas.aulavirtualapp.model.assignment.AssignmentResponse
+import com.practicas.aulavirtualapp.model.assignment.SaveSubmissionResponse
+import com.practicas.aulavirtualapp.model.assignment.SubmissionStatusResponse
+import com.practicas.aulavirtualapp.model.auth.OAuthTokenResponse
+import com.practicas.aulavirtualapp.model.auth.UserDetail
+import com.practicas.aulavirtualapp.model.course.Course
+import com.practicas.aulavirtualapp.model.course.CourseSection
+import com.practicas.aulavirtualapp.model.grades.GradeReportResponse
+import com.practicas.aulavirtualapp.model.user.BadgeResponse
+import com.practicas.aulavirtualapp.model.user.EnrolledUser
+import com.practicas.aulavirtualapp.model.user.PrivateFilesInfo
 import com.practicas.aulavirtualapp.network.RetrofitClient
 import com.practicas.aulavirtualapp.network.TokenResponse
 import okhttp3.MultipartBody
